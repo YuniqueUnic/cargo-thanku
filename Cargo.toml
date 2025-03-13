@@ -1,0 +1,19 @@
+[package]
+name = "cargo-thanku"
+version = "0.1.0"
+edition = "2024"
+authors = ["unic <yuniqueunic@gmail.com>"]
+description = "A cargo cli tool to thank your dependencies and generate a thank you structure text"
+categories = [
+    "acknowledgement",
+    "thanks",
+    "development-tools",
+    "cli-tools",
+    "dependencies",
+]
+keywords = ["cargo", "cli", "thank", "acknowledgement", "dependencies"]
+license = "MIT"
+repository = "https://github.com/yuniqueunic/cargo-thanku"
+
+
+[dependencies]
