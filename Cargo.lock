@@ -175,7 +175,6 @@ dependencies = [
  "cargo_metadata",
  "clap",
  "clap_complete",
- "once_cell",
  "pretty_assertions",
  "reqwest",
  "serde",

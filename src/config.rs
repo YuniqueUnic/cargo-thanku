@@ -1,6 +1,6 @@
 use anyhow::Result;
-use once_cell::sync::OnceCell;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone)]
 pub enum OutputFormat {
@@ -54,7 +54,7 @@ impl Default for Config {
     }
 }
 
-static GLOBAL_CONFIG: OnceCell<Config> = OnceCell::new();
+static GLOBAL_CONFIG: OnceLock<Config> = OnceLock::new();
 
 impl Config {
     pub fn global() -> Result<&'static Config> {

@@ -136,7 +136,7 @@ fn generate_output(results: &[(String, Source)], format: &OutputFormat) -> Resul
                 match source {
                     Source::GitHub { owner, repo, stars } => {
                         println!(
-                            "| {} | [GitHub](https://github.com/{}/{}) | ⭐ {} |",
+                            "| {} | [GitHub](https://github.com/{}/{}) | 🌟 {} |",
                             name,
                             owner,
                             repo,
@@ -152,10 +152,10 @@ fn generate_output(results: &[(String, Source)], format: &OutputFormat) -> Resul
                         );
                     }
                     Source::Link { url } => {
-                        println!("| {} | [Source]({}) | - |", name, url);
+                        println!("| {} | [Source]({}) | 🔗 |", name, url);
                     }
                     Source::Other { description } => {
-                        println!("| {} | {} | - |", name, description);
+                        println!("| {} | {} | ❓ |", name, description);
                     }
                 }
             }
