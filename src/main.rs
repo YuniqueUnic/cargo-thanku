@@ -1,88 +1,172 @@
-use anyhow::Context;
-use clap::Command;
-use tracing_subscriber::FmtSubscriber;
-
 mod cli;
 mod config;
 mod errors;
 mod sources;
 
+use anyhow::Result;
+use cargo_metadata::MetadataCommand;
+use std::collections::HashMap;
+use tracing::{debug, info, instrument};
+
+use crate::{
+    cli::{build_cli, generate_completions},
+    config::{Config, OutputFormat},
+    errors::AppError,
+    sources::{CratesioClient, GitHubClient, Source},
+};
+
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    // 初始化 tracing 日志系统
-    FmtSubscriber::builder()
+async fn main() -> Result<()> {
+    // Initialize tracing
+    tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
-    // 解析 CLI 参数并初始化全局配置
-    let config = config::Config::global()?;
-    tracing::info!("Configuration loaded: {:?}", config);
+    let matches = build_cli().get_matches();
 
-    // 处理依赖并生成感谢结构
-    process_dependencies(&config).await?;
+    // Handle completions subcommand
+    if let Some(matches) = matches.subcommand_matches("completions") {
+        if let Some(shell) = matches.get_one::<String>("shell") {
+            generate_completions(shell)
+                .map_err(|e| anyhow::anyhow!("Failed to generate completions: {}", e))?;
+            return Ok(());
+        }
+    }
 
-    Ok(())
+    // Initialize global config
+    let config = Config::from_matches(&matches)?;
+    Config::init(config)?;
+
+    process_dependencies().await
 }
 
-async fn process_dependencies(config: &config::Config) -> anyhow::Result<()> {
-    let metadata = cargo_metadata::MetadataCommand::new()
+#[instrument(skip_all)]
+async fn process_dependencies() -> Result<()> {
+    let config = Config::global()?;
+
+    // Get cargo metadata
+    let metadata = MetadataCommand::new()
         .manifest_path(&config.input)
         .exec()
-        .context("Failed to get cargo metadata")?;
+        .map_err(AppError::MetadataError)?;
 
-    let deps: Vec<_> = metadata
-        .packages
-        .iter()
-        .flat_map(|pkg| pkg.dependencies.iter().map(|d| &d.name))
-        .collect();
+    // Collect all dependencies
+    let mut deps = HashMap::new();
+    for pkg in &metadata.packages {
+        for dep in &pkg.dependencies {
+            deps.entry(dep.name.clone()).or_insert_with(|| dep.clone());
+        }
+    }
 
-    tracing::debug!("Found {} dependencies", deps.len());
+    debug!("Found {} unique dependencies", deps.len());
 
-    let crates_io_client = sources::CratesioClient::new();
-    let github_client = sources::GitHubClient::new(&config.token)?;
+    // Initialize clients
+    let crates_io_client = CratesioClient::new();
+    let github_client = if let Some(token) = &config.github_token {
+        Some(GitHubClient::new(token)?)
+    } else {
+        None
+    };
 
-    let mut output_data = Vec::new();
-    for dep in deps {
-        if let Some(source) = crates_io_client
-            .get_crate_info(dep)
-            .await?
-            .and_then(|krate| sources::Source::from_url(&krate.repository))
-        {
-            match source {
-                sources::Source::GitHub { owner, repo } => {
-                    github_client.star_repository(&owner, &repo).await?;
-                    output_data.push(format!("{} - github.com/{}/{}", dep, owner, repo));
-                }
-                sources::Source::Cratesio => {
-                    output_data.push(format!("{} - crates.io", dep));
-                }
-                sources::Source::Link(url) => {
-                    output_data.push(format!("{} - {}", dep, url));
-                }
-                sources::Source::Other => {
-                    output_data.push(format!("{} - unknown source", dep));
-                }
+    // Process each dependency
+    let mut results = Vec::new();
+    for (name, _) in deps {
+        match process_dependency(&name, &crates_io_client, github_client.as_ref()).await {
+            Ok(source) => {
+                results.push((name, source));
+            }
+            Err(e) => {
+                tracing::warn!("Failed to process {}: {}", name, e);
             }
         }
     }
 
-    // 根据配置生成输出文件
-    match config.output_format {
-        config::OutputFormat::Toml => {
-            let output = toml::to_string_pretty(&output_data)?;
-            std::fs::write(&config.output_file, output)?;
+    // Generate output
+    generate_output(&results, &config.format)?;
+
+    Ok(())
+}
+
+#[instrument(skip(crates_io_client, github_client))]
+async fn process_dependency(
+    name: &str,
+    crates_io_client: &CratesioClient,
+    github_client: Option<&GitHubClient>,
+) -> Result<Source> {
+    // Get crate info from crates.io
+    let crate_info = crates_io_client.get_crate_info(name).await?;
+
+    // Try to get source information
+    if let Some(repo_url) = &crate_info.repository {
+        if let Some(mut source) = Source::from_url(&Some(repo_url.clone())) {
+            // If it's a GitHub repository and we have a token, try to star it and get more info
+            if let (Some(client), Source::GitHub { owner, repo, stars }) =
+                (github_client, &mut source)
+            {
+                if let Ok(repo_info) = client.get_repository_info(&owner, &repo).await {
+                    *stars = Some(repo_info.stargazers_count);
+                    client.star_repository(&owner, &repo).await?;
+                    info!(
+                        "💖 {} {}",
+                        name,
+                        yansi::Paint::new(repo_info.html_url).dim()
+                    );
+                }
+            }
+            Ok(source)
+        } else {
+            Ok(Source::Other {
+                description: format!("Unknown source: {}", repo_url),
+            })
         }
-        config::OutputFormat::Json => {
-            let output = serde_json::to_string_pretty(&output_data)?;
-            std::fs::write(&config.output_file, output)?;
+    } else {
+        Ok(Source::CratesIo {
+            name: name.to_string(),
+            downloads: Some(crate_info.downloads),
+        })
+    }
+}
+
+fn generate_output(results: &[(String, Source)], format: &OutputFormat) -> Result<()> {
+    match format {
+        OutputFormat::MarkdownTable => {
+            println!("| Name | Source | Stats |");
+            println!("|------|--------|-------|");
+            for (name, source) in results {
+                match source {
+                    Source::GitHub { owner, repo, stars } => {
+                        println!(
+                            "| {} | [GitHub](https://github.com/{}/{}) | ⭐ {} |",
+                            name,
+                            owner,
+                            repo,
+                            stars.unwrap_or(0)
+                        );
+                    }
+                    Source::CratesIo { downloads, .. } => {
+                        println!(
+                            "| {} | [crates.io](https://crates.io/crates/{}) | 📦 {} |",
+                            name,
+                            name,
+                            downloads.unwrap_or(0)
+                        );
+                    }
+                    Source::Link { url } => {
+                        println!("| {} | [Source]({}) | - |", name, url);
+                    }
+                    Source::Other { description } => {
+                        println!("| {} | {} | - |", name, description);
+                    }
+                }
+            }
         }
-        config::OutputFormat::MarkdownTable => {
-            let table = output_data
-                .iter()
-                .fold(String::new(), |acc, line| acc + &format!("| {} |\n", line));
-            std::fs::write(&config.output_file, table)?;
+        _ => {
+            // TODO: Implement other output formats
+            return Err(anyhow::anyhow!(
+                "Output format {:?} not yet implemented",
+                format
+            ));
         }
-        _ => {}
     }
 
     Ok(())
