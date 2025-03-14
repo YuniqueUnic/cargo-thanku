@@ -132,12 +132,12 @@ impl Config {
             .unwrap_or_else(|| String::from("thanks"));
 
         let format = matches
-            .get_one::<String>("type")
+            .get_one::<String>("format")
             .map(|t| t.parse::<OutputFormat>().unwrap_or_default())
             .unwrap_or_default();
 
         let link_source = matches
-            .get_one::<String>("link")
+            .get_one::<String>("source")
             .map(|l| l.parse::<LinkSource>().unwrap_or_default())
             .unwrap_or_default();
 

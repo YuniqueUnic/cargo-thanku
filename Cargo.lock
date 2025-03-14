@@ -211,6 +211,7 @@ dependencies = [
  "rust-i18n",
  "serde",
  "serde_json",
+ "strsim",
  "thiserror",
  "tokio",
  "tokio-test",
@@ -218,7 +219,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "yansi",
 ]
 
 [[package]]

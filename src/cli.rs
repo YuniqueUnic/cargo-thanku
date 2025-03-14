@@ -5,10 +5,86 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use tracing::instrument;
 
+// Arg::new("language")
+//     .short('l')
+//     .long("language")
+//     .help(format!("{}", t!("cli.language_help")))
+//     .global(true)
+//     .env("LANG")
+//     .value_parser(|s: &str| {
+//         let tag = LanguageTag::parse(s)
+//             .map_err(|_| format!("Invalid language tag: {}", s))?;
+//         let lang = tag.primary_language();
+//         match lang {
+//             "zh" | "en" | "ja" | "ko" | "es" | "fr" | "de" | "it" => Ok(lang.to_string()),
+//             _ => Err(format!("Unsupported language: {}", lang))
+//         }
+//     })
+//     .default_value("zh"),
+
+/// 定义语言解析器
+#[derive(Clone, Debug)]
+struct LanguageParser;
+
+impl clap::builder::TypedValueParser for LanguageParser {
+    type Value = String;
+
+    #[instrument]
+    fn parse_ref(
+        &self,
+        cmd: &Command,
+        arg: Option<&Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let input = value.to_string_lossy().to_lowercase();
+
+        // 解析语言代码
+        let lang_code = if input.contains('_') || input.contains('.') {
+            // 处理形如 "en_US.UTF-8" 的格式
+            input
+                .split(['_', '.', '-'])
+                .next()
+                .unwrap_or("zh")
+                .to_string()
+        } else {
+            input
+        };
+
+        // 验证是否是支持的语言
+        match lang_code.as_str() {
+            "zh" | "en" | "ja" | "ko" | "es" | "fr" | "de" | "it" => Ok(lang_code),
+            _ => {
+                // 尝试找到最相似的语言代码
+                let supported = ["zh", "en", "ja", "ko", "es", "fr", "de", "it"];
+                if let Some(similar) = supported
+                    .iter()
+                    .min_by_key(|&x| strsim::levenshtein(x, &lang_code))
+                {
+                    Err(clap::Error::raw(
+                        clap::error::ErrorKind::InvalidValue,
+                        format!(
+                            "Invalid language '{}'. Did you mean '{}'?",
+                            lang_code, similar
+                        ),
+                    ))
+                } else {
+                    Err(clap::Error::raw(
+                        clap::error::ErrorKind::InvalidValue,
+                        format!("Unsupported language: {}", lang_code),
+                    ))
+                }
+            }
+        }
+    }
+}
+
 #[instrument(skip_all)]
 pub fn build_cli() -> Command {
-    Command::new("cargo-thanku")
-        .bin_name("cargo-thanku") // 使用 `thanku` 作为命令名，使得 cargo thanku 可以正常工作
+    Command::new("thanku") // Use "thanku" as the command name for `cargo thanku`
+        .bin_name("cargo-thanku") // This tells cargo how to invoke it
+        .aliases(["thx", "thxu"])
+        .subcommand_required(true) // 强制要求子命令模式
+        .arg_required_else_help(true)
         .version(env!("CARGO_PKG_VERSION"))
         .about(format!("{}", t!("cli.about")))
         .args([
@@ -33,7 +109,7 @@ pub fn build_cli() -> Command {
                 .long("name")
                 .help(format!("{}", t!("cli.name_help")))
                 .global(true)
-                .value_hint(clap::ValueHint::FilePath)
+                .value_hint(clap::ValueHint::Other) // Changed from FilePath
                 .default_value("thanks"),
             Arg::new("format")
                 .short('f')
@@ -68,8 +144,9 @@ pub fn build_cli() -> Command {
                 .long("language")
                 .help(format!("{}", t!("cli.language_help")))
                 .global(true)
-                .env("LANG")
-                .value_parser(["zh", "en", "ja", "ko", "es", "fr", "de", "it"])
+                // .env("LANG")
+                // .value_parser(["zh", "en", "ja", "ko", "es", "fr", "de", "it"])
+                .value_parser(clap::value_parser!(String)) // Assuming LanguageParser is handled later or is simple
                 .default_value("zh"),
             Arg::new("verbose")
                 .short('v')
@@ -90,6 +167,7 @@ pub fn build_cli() -> Command {
                         .value_parser(["bash", "fish", "zsh", "powershell", "elvish"]),
                 ),
         )
+        .subcommand(Command::new("test").about("test"))
 }
 
 #[instrument]

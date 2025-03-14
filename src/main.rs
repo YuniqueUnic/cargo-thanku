@@ -6,8 +6,9 @@ mod sources;
 use anyhow::Result;
 use cargo_metadata::MetadataCommand;
 use rust_i18n::t;
+use tracing::{Level, debug, info, instrument};
+
 use std::collections::HashMap;
-use tracing::{debug, info, instrument};
 
 use crate::{
     cli::{build_cli, generate_completions},
@@ -26,33 +27,46 @@ rust_i18n::i18n!(
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let cli = build_cli();
+    let matches = cli.get_matches_from(filter_cargo_args());
+
+    let language = matches
+        .get_one::<String>("language")
+        .cloned()
+        .unwrap_or("zh".to_string());
+    let verbose = matches.get_flag("verbose");
+
+    // Set locale
+    rust_i18n::set_locale(&language);
+
     // Initialize tracing
-    init_log(tracing::Level::INFO)?;
-
-    let matches = build_cli().get_matches();
-
-    // Handle completions subcommand
-    if let Some(matches) = matches.subcommand_matches("completions") {
-        if let Some(shell) = matches.get_one::<String>("shell") {
-            generate_completions(shell).map_err(|e| {
-                anyhow::anyhow!(t!(
-                    "main.failed_generate_completions",
-                    error = e.to_string()
-                ))
-            })?;
-            return Ok(());
-        }
-    }
+    init_log(if verbose { Level::DEBUG } else { Level::INFO })?;
 
     // Initialize global config
     let config = Config::from_matches(&matches)?;
     Config::init(config)?;
 
+    // Handle completions subcommand
+    handle_completions(&matches)?;
+    handle_test(&matches)?;
+
+    dbg!("process_dependencies");
     process_dependencies().await
 }
 
 #[instrument]
-pub fn init_log(log_level: tracing::Level) -> Result<()> {
+fn filter_cargo_args() -> impl Iterator<Item = String> {
+    std::env::args().enumerate().filter_map(|(i, arg)| {
+        match (i, arg.as_str()) {
+            // 过滤掉 cargo 传递的子命令名（如 "thanku"、"thx"）
+            (1, "thanku" | "thx" | "thxu") => None,
+            _ => Some(arg),
+        }
+    })
+}
+
+#[instrument]
+pub fn init_log(log_level: Level) -> Result<()> {
     // 初始化日志
     let mut log_fmt = tracing_subscriber::fmt()
         .with_env_filter(
@@ -72,6 +86,33 @@ pub fn init_log(log_level: tracing::Level) -> Result<()> {
     }
 
     log_fmt.init();
+    Ok(())
+}
+
+#[instrument(skip_all)]
+fn handle_completions(matches: &clap::ArgMatches) -> Result<()> {
+    if let Some(matches) = matches.subcommand_matches("completions") {
+        if let Some(shell) = matches.get_one::<String>("shell") {
+            generate_completions(shell).map_err(|e| {
+                anyhow::anyhow!(t!(
+                    "main.failed_generate_completions",
+                    error = e.to_string()
+                ))
+            })?;
+            return Ok(());
+        }
+    }
+    Ok(())
+}
+
+#[instrument(skip_all)]
+fn handle_test(matches: &clap::ArgMatches) -> Result<()> {
+    if let Some(matches) = matches.subcommand_matches("test") {
+        tracing::info!("test: {:?}", matches);
+        println!("{}", t!("app.description"));
+        println!("test: {:?}", matches);
+        return Ok(());
+    }
     Ok(())
 }
 
@@ -148,11 +189,7 @@ async fn process_dependency(
                 if let Ok(repo_info) = client.get_repository_info(&owner, &repo).await {
                     *stars = Some(repo_info.stargazers_count);
                     client.star_repository(&owner, &repo).await?;
-                    info!(
-                        "💖 {} {}",
-                        name,
-                        yansi::Paint::new(repo_info.html_url).dim()
-                    );
+                    info!("💖 {} {}", name, repo_info.html_url);
                 }
             }
             Ok(source)
