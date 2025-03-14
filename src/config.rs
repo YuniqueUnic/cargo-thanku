@@ -1,6 +1,9 @@
 use anyhow::Result;
+use std::fmt;
 use std::path::PathBuf;
 use std::sync::OnceLock;
+
+use crate::errors::AppError;
 
 #[derive(Debug, Clone)]
 pub enum OutputFormat {
@@ -11,9 +14,30 @@ pub enum OutputFormat {
     Yaml,
 }
 
+impl fmt::Display for OutputFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}
+
 impl Default for OutputFormat {
     fn default() -> Self {
         Self::MarkdownTable
+    }
+}
+
+impl std::str::FromStr for OutputFormat {
+    type Err = AppError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "markdown-table" => Self::MarkdownTable,
+            "markdown-list" => Self::MarkdownList,
+            "json" => Self::Json,
+            "toml" => Self::Toml,
+            "yaml" => Self::Yaml,
+            _ => return Err(AppError::InvalidOutputFormat(s.to_string())),
+        })
     }
 }
 
@@ -28,6 +52,19 @@ pub enum LinkSource {
 impl Default for LinkSource {
     fn default() -> Self {
         Self::GitHub
+    }
+}
+
+impl std::str::FromStr for LinkSource {
+    type Err = AppError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "github" => Self::GitHub,
+            "crates-io" => Self::CratesIo,
+            "link-empty" => Self::LinkEmpty,
+            _ => return Err(AppError::InvalidLinkSource(s.to_string())),
+        })
     }
 }
 
@@ -60,13 +97,13 @@ impl Config {
     pub fn global() -> Result<&'static Config> {
         GLOBAL_CONFIG
             .get()
-            .ok_or_else(|| anyhow::anyhow!("Global config not initialized"))
+            .ok_or_else(|| anyhow::anyhow!(t!("config.failed_to_initialize_global_config.zh")))
     }
 
     pub fn init(config: Config) -> Result<()> {
         GLOBAL_CONFIG
             .set(config)
-            .map_err(|_| anyhow::anyhow!("Global config already initialized"))
+            .map_err(|_| anyhow::anyhow!(t!("config.global_config_already_initialized.zh")))
     }
 
     pub fn from_matches(matches: &clap::ArgMatches) -> Result<Self> {
@@ -87,24 +124,12 @@ impl Config {
 
         let format = matches
             .get_one::<String>("type")
-            .map(|t| match t.as_str() {
-                "markdown-table" => OutputFormat::MarkdownTable,
-                "markdown-list" => OutputFormat::MarkdownList,
-                "json" => OutputFormat::Json,
-                "toml" => OutputFormat::Toml,
-                "yaml" => OutputFormat::Yaml,
-                _ => OutputFormat::default(),
-            })
+            .map(|t| t.parse::<OutputFormat>().unwrap_or_default())
             .unwrap_or_default();
 
         let link_source = matches
             .get_one::<String>("link")
-            .map(|l| match l.as_str() {
-                "github" => LinkSource::GitHub,
-                "crates-io" => LinkSource::CratesIo,
-                "link-empty" => LinkSource::LinkEmpty,
-                _ => LinkSource::Other,
-            })
+            .map(|l| l.parse::<LinkSource>().unwrap_or_default())
             .unwrap_or_default();
 
         let github_token = matches.get_one::<String>("token").cloned();

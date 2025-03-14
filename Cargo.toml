@@ -3,7 +3,7 @@ name = "cargo-thanku"
 version = "0.1.0"
 edition = "2024"
 authors = ["unic <yuniqueunic@gmail.com>"]
-description = "A cargo cli tool to thank your dependencies and generate a thank you structure text"
+description = "Generate acknowledgments for your Rust project dependencies"
 categories = [
     "acknowledgement",
     "thanks",
@@ -34,6 +34,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # once_cell = "1.19"
 yansi = "1"
+rust-i18n = "3.1.3"
 
 [dev-dependencies]
 tokio-test = "0.4"

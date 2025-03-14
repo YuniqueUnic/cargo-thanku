@@ -1,0 +1,372 @@
+_version: 2
+
+language:
+  zh: 语言
+  en: language
+  ja: 言語
+  ko: 언어
+  es: idioma
+  fr: langue
+  de: sprache
+  it: lingua
+
+app:
+  author: unic <yuniqueunic@gmail.com>
+  version: 0.1.0
+  license: MIT
+  name:
+    zh: cargo-感谢您
+    en: cargo-thanku
+    ja: cargo-ありがとう
+    ko: cargo-감사합니다
+    es: cargo-gracias
+    fr: cargo-merci
+    de: cargo-danke
+    it: cargo-grazie
+  thanku: 
+    zh: 感谢你的依赖
+    en: Thank you for your dependencies
+    ja: ありがとうございます
+    ko: 감사합니다
+    es: gracias
+    fr: merci
+    de: danke
+    it: grazie
+  description: 
+    zh: ❤️‍🔥 生成你的 Rust 项目依赖的感谢清单
+    en: ❤️‍🔥 Generate acknowledgments for your Rust project dependencies
+    ja: ❤️‍🔥 ありがとうございます
+    ko: ❤️‍🔥 감사합니다
+    es: ❤️‍🔥 gracias
+    fr: ❤️‍🔥 merci
+    de: ❤️‍🔥 danke
+    it: ❤️‍🔥 grazie
+
+main:
+  name:
+    zh: 名称
+    en: Name
+    ja: 名前
+    ko: 이름
+    es: nombre
+    fr: nom
+    de: name
+    it: nome
+  source:
+    zh: 来源
+    en: Source
+    ja: ソース
+    ko: 소스
+    es: fuente
+    fr: source
+    de: quelle
+    it: fonte
+  stats:
+    zh: 统计
+    en: Stats
+    ja: 統計
+    ko: 통계
+    es: estadísticas
+    fr: statistiques
+    de: statistiken
+    it: statistiche
+  failed_generate_completions:
+    zh: "❌ 自动补全生成失败：%{error}"
+    en: "❌ Failed to generate completions: %{error}"
+    ja: "❌ 自動補完の生成に失敗しました：%{error}"
+    ko: "❌ 자동 완성 생성에 실패했습니다: %{error}"
+    es: "❌ Error al generar completaciones: %{error}"
+    fr: "❌ Erreur lors de la génération des complétions: %{error}"
+    de: "❌ Fehler beim Generieren von Vervollständigungen: %{error}"
+    it: "❌ Errore nella generazione delle completazioni: %{error}"
+  found_dependencies:
+    zh: "✅ 找到 %{count} 个独一无二的依赖"
+    en: "✅ Found %{count} unique dependencies"
+    ja: "✅ %{count} 個の唯一の依存関係を見つけました"
+    ko: "✅ %{count} 개의 고유한 종속성을 찾았습니다"
+    es: "✅ Encontrados %{count} dependencias únicas"
+    fr: "✅ %{count} dépendances uniques trouvées"
+    de: "✅ %{count} eindeutige Abhängigkeiten gefunden"
+    it: "✅ %{count} dipendenze uniche trovate"
+  failed_to_process_dependency:
+    zh: "❌ 处理 %{name} 失败：%{error}"
+    en: "❌ Failed to process %{name}: %{error}"
+    ja: "❌ %{name} の処理に失敗しました：%{error}"
+    ko: "❌ %{name} 처리에 실패했습니다: %{error}"
+    es: "❌ Error al procesar %{name}: %{error}"
+    fr: "❌ Erreur lors du traitement de %{name}: %{error}"
+    de: "❌ Fehler beim Verarbeiten von %{name}: %{error}"
+    it: "❌ Errore nel processare %{name}: %{error}"
+  failed_to_get_crate_info:
+    zh: "❌ 获取 %{name} 的 crate 信息失败：%{error}"
+    en: "❌ Failed to get crate info for %{name}: %{error}"
+    ja: "❌ %{name} の crate 情報の取得に失敗しました：%{error}"
+    ko: "❌ %{name} 의 crate 정보를 가져오는 데 실패했습니다: %{error}"
+    es: "❌ Error al obtener información del crate de %{name}: %{error}"
+    fr: "❌ Erreur lors de la récupération des informations du crate %{name}: %{error}"
+    de: "❌ Fehler beim Abrufen der crate-Informationen für %{name}: %{error}"
+    it: "❌ Errore nel recuperare le informazioni del crate %{name}: %{error}"
+  failed_to_get_repository_info:
+    zh: "❌ 获取 %{name} 的仓库信息失败：%{error}"
+    en: "❌ Failed to get repository info for %{name}: %{error}"
+    ja: "❌ %{name} のリポジトリ情報の取得に失敗しました：%{error}"
+    ko: "❌ %{name} 의 저장소 정보를 가져오는 데 실패했습니다: %{error}"
+    es: "❌ Error al obtener información del repositorio de %{name}: %{error}"
+    fr: "❌ Erreur lors de la récupération des informations du dépôt %{name}: %{error}"
+    de: "❌ Fehler beim Abrufen der Repository-Informationen für %{name}: %{error}"
+    it: "❌ Errore nel recuperare le informazioni del repository %{name}: %{error}"
+  failed_to_get_star_repository:
+    zh: "❌ 获取 %{name} 的仓库点赞信息失败：%{error}"
+    en: "❌ Failed to get star repository info for %{name}: %{error}"
+    ja: "❌ %{name} のリポジトリのスター情報の取得に失敗しました：%{error}"
+    ko: "❌ %{name} 의 저장소 스타 정보를 가져오는 데 실패했습니다: %{error}"
+    es: "❌ Error al obtener información de estrellas del repositorio %{name}: %{error}"
+    fr: "❌ Erreur lors de la récupération des informations de favoris pour %{name}: %{error}"
+    de: "❌ Fehler beim Abrufen der Favorit-Informationen für %{name}: %{error}"
+    it: "❌ Errore nel recuperare le informazioni dei preferiti per %{name}: %{error}"
+  failed_to_get_source_info:
+    zh: "❌ 获取 %{name} 的源信息失败：%{error}"
+    en: "❌ Failed to get source info for %{name}: %{error}"
+    ja: "❌ %{name} のソース情報の取得に失敗しました：%{error}"
+    ko: "❌ %{name} 의 소스 정보를 가져오는 데 실패했습니다: %{error}"
+    es: "❌ Error al obtener información del origen de %{name}: %{error}"
+    fr: "❌ Erreur lors de la récupération des informations du source %{name}: %{error}"
+    de: "❌ Fehler beim Abrufen der Quelleninformationen für %{name}: %{error}"
+    it: "❌ Errore nel recuperare le informazioni del sorgente %{name}: %{error}"
+  unknown_source:
+    zh: "❌ 未知源：%{source}"
+    en: "❌ Unknown source: %{source}"
+    ja: "❌ 未知のソース：%{source}"
+    ko: "❌ 알 수 없는 소스：%{source}"
+    es: "❌ Fuente desconocida: %{source}"
+    fr: "❌ Source inconnue: %{source}"
+    de: "❌ Unbekannter Quellen: %{source}"
+    it: "❌ Fonte sconosciuta: %{source}"
+  format_is_not_implemented_yet:
+    zh: "❌ 输出格式 %{format} 暂未支持"
+    en: "❌ Output format %{format} is not implemented yet"
+    ja: "❌ 出力形式 %{format} はまだ実装されていません"
+    ko: "❌ 출력 형식 %{format} 지원되지 않습니다"
+    es: "❌ El formato de salida %{format} no está implementado"
+    fr: "❌ Le format de sortie %{format} n'est pas encore implémenté"
+    de: "❌ Das Ausgabeformat %{format} ist noch nicht implementiert"
+    it: "❌ Il formato di output %{format} non è ancora implementato"
+
+
+
+cli:
+  about:
+    zh: ❤️‍🔥 生成你的 Rust 项目依赖的感谢清单
+    en: ❤️‍🔥 Generate acknowledgments for your Rust project dependencies
+    ja: ❤️‍🔥 ありがとうございます
+    ko: ❤️‍🔥 감사합니다
+    es: ❤️‍🔥 gracias
+    fr: ❤️‍🔥 merci
+    de: ❤️‍🔥 danke
+    it: ❤️‍🔥 grazie
+  input:
+    zh: 输入文件
+    en: Input file
+    ja: 入力ファイル
+    ko: 입력 파일
+    es: archivo de entrada
+    fr: fichier d'entrée
+    de: Eingabedatei
+    it: file di input
+  input_help:
+    zh: 输入 Cargo.toml 文件或项目目录
+    en: Input Cargo.toml file or project directory
+    ja: 入力 Cargo.toml ファイルまたはプロジェクトディレクトリ
+    ko: 입력 Cargo.toml 파일 또는 프로젝트 디렉토리
+    es: archivo de entrada Cargo.toml o directorio de proyecto
+    fr: fichier d'entrée Cargo.toml ou répertoire de projet
+    de: Eingabedatei Cargo.toml oder Projektdatei
+    it: file di input Cargo.toml o directory di progetto
+  output:
+    zh: 输出文件
+    en: Output file
+    ja: 出力ファイル
+    ko: 출력 파일
+    es: archivo de salida
+    fr: fichier de sortie
+    de: Ausgabedatei
+    it: file di output
+  output_help:
+    zh: 输出文件路径
+    en: Output file path
+    ja: 出力ファイルのパス
+    ko: 출력 파일의 경로
+    es: ruta del archivo de salida
+    fr: chemin du fichier de sortie
+    de: Ausgabedatei
+    it: percorso del file di output
+  name:
+    zh: 名称
+    en: Name
+    ja: 名前
+    ko: 이름
+    es: nombre
+    fr: nom
+    de: name
+    it: nome
+  name_help:
+    zh: 输出文件名称
+    en: Output file name
+    ja: 出力ファイルの名前
+    ko: 출력 파일의 이름
+    es: nombre del archivo de salida
+    fr: nom du fichier de sortie
+    de: Ausgabename
+    it: nome del file di output
+  type:
+    zh: 输出格式
+    en: Output format
+    ja: 出力形式
+    ko: 출력 형식
+    es: formato de salida
+    fr: format de sortie
+    de: Ausgabeformat
+    it: formato di output
+  format_help:
+    zh: 输出内容格式
+    en: Output content format
+    ja: 出力内容形式
+    ko: 출력 내용 형식
+    es: formato de salida de contenido
+    fr: format de sortie de contenu
+    de: Ausgabeformat de Inhalt
+    it: formato di output
+  source:
+    zh: 链接来源
+    en: Link source
+    ja: リンクソース
+    ko: 링크 소스
+    es: fuente del enlace
+    fr: source du lien
+    de: Linkquelle
+    it: origine del link
+  source_help:
+    zh: 链接来源 (link-empty 意味着链接为占位符链接，other 意味着未知来源，无链接作用)
+    en: Link source (link-empty means placeholder link, other means unknown source with no link action)
+    ja: リンクソース (link-empty はプレースホルダーリンクを意味，other は不明なソースでリンク機能なし)
+    ko: 링크 소스 (link-empty 는 임시 링크 의미, other 는 알 수 없는 소스로 링크 작동 없음)
+    es: Fuente del enlace (link-empty significa enlace reservado, other significa fuente desconocida sin acción de enlace)
+    fr: Source du lien (link-empty signifie lien de substitution, other signifie source inconnue sans action de lien)
+    de: Link-Quelle (link-empty bedeutet Platzhalterlink, other bedeutet unbekannte Quelle ohne Link-Funktion)
+    it: Origine del link (link-empty indica un link segnaposto, other indica origine sconosciuta senza azione di collegamento)
+  token:
+    zh: GitHub 认证令牌
+    en: GitHub authentication token
+    ja: GitHub 認証トークン
+    ko: GitHub 인증 토큰
+    es: Token de autenticación de GitHub
+    fr: Token d'authentification GitHub
+    de: GitHub-Authentifizierungstoken
+    it: Token di autenticazione GitHub
+  token_help:
+    zh: GitHub 认证令牌 (需要 GitHub 操作时必填)
+    en: GitHub authentication token (required for GitHub operations)
+    ja: GitHub 認証トークン (GitHub 操作時必須)
+    ko: GitHub 인증 토큰 (GitHub 작업 시 필요)
+    es: Token de autenticación de GitHub (requerido para operaciones de GitHub)
+    fr: Token d'authentification GitHub (nécessaire pour les opérations GitHub)
+    de: GitHub-Authentifizierungstoken (erforderlich für GitHub-Operationen)
+    it: Token di autenticazione GitHub (necessario per le operazioni GitHub)
+  crates_token:
+    zh: crates.io 认证令牌
+    en: crates.io authentication token
+    ja: crates.io 認証トークン
+    ko: crates.io 인증 토큰
+    es: Token de autenticación de crates.io
+    fr: Token d'authentification crates.io
+    de: crates.io-Authentifizierungstoken
+    it: Token di autenticazione crates.io
+  crates_token_help:
+    zh: crates.io 认证令牌 (需要 crates.io 操作时必填)
+    en: crates.io authentication token (required for crates.io operations)
+    ja: crates.io 認証トークン (crates.io 操作時必須)
+    ko: crates.io 인증 토큰 (crates.io 작업 시 필요)
+    es: Token de autenticación de crates.io (requerido para operaciones de crates.io)
+    fr: Token d'authentification crates.io (nécessaire pour les opérations crates.io)
+    de: crates.io-Authentifizierungstoken (erforderlich für crates.io-Operationen)
+    it: Token di autenticazione crates.io (necessario per le operazioni crates.io)
+  language:
+    zh: 语言
+    en: Language
+    ja: 言語
+    ko: 언어
+    es: idioma
+    fr: langue
+    de: Sprache
+    it: lingua
+  language_help:
+    zh: 语言 (zh, en, ja, ko, es, fr, de, it)
+    en: Language (zh, en, ja, ko, es, fr, de, it)
+    ja: 言語 (zh, en, ja, ko, es, fr, de, it)
+    ko: 언어 (zh, en, ja, ko, es, fr, de, it)
+    es: idioma (zh, en, ja, ko, es, fr, de, it)
+    fr: langue (zh, en, ja, ko, es, fr, de, it)
+    de: Sprache (zh, en, ja, ko, es, fr, de, it)
+    it: lingua (zh, en, ja, ko, es, fr, de, it)
+  completions_about:
+    zh: 生成 shell 补全
+    en: Generate shell completions
+    ja: シェル補完の生成
+    ko: 쉘 완성 생성
+    es: Generar completados de shell
+    fr: Générer des complétions de shell
+    de: Shell-Vervollständigungen generieren
+    it: Generare completamenti di shell
+  completions_args:
+    shell_help:
+      zh: 目标 shell
+      en: Target shell
+      ja: ターゲットシェル
+      ko: 대상 쉘
+      es: shell objetivo
+      fr: shell cible
+      de: Ziel-Shell
+      it: shell di destinazione
+  invalid_shell_type:
+    zh: "无效的 shell 类型：%{shell}"
+    en: "Invalid shell type: %{shell}"
+    ja: "無効なシェルタイプ：%{shell}"
+    ko: "유효하지 않은 쉘 유형：%{shell}"
+    es: "Tipo de shell inválido: %{shell}"
+    fr: "Type de shell invalide: %{shell}"
+    de: "Ungültiger Shell-Typ: %{shell}"
+    it: "Tipo di shell non valido: %{shell}"
+
+sources:
+  failed_to_create_http_client:
+    zh: "❌ 创建 HTTP 客户端失败：%{error}"
+    en: "❌ Failed to create HTTP client: %{error}"
+    ja: "❌ HTTP クライアントの作成に失敗しました：%{error}"
+    ko: "❌ HTTP 클라이언트 생성에 실패했습니다: %{error}"
+    es: "❌ Error al crear el cliente HTTP: %{error}"
+    fr: "❌ Erreur lors de la création du client HTTP: %{error}"
+    de: "❌ HTTP-Client konnte nicht erstellt werden: %{error}"
+    it: "❌ Errore nella creazione del client HTTP: %{error}"
+  failed_to_get_crate_info:
+    zh: "❌ 获取 crate 信息失败：%{error}"
+    en: "❌ Failed to get crate info: %{error}"
+
+config:
+  failed_to_initialize_global_config:
+    zh: "❌ 初始化全局配置失败：%{error}"
+    en: "❌ Failed to initialize global config: %{error}"
+    ja: "❌ グローバル設定の初期化に失敗しました：%{error}"
+    ko: "❌ 전역 설정 초기화에 실패했습니다: %{error}"
+    es: "❌ Error al inicializar la configuración global: %{error}"
+    fr: "❌ Erreur lors de l'initialisation de la configuration globale: %{error}"
+    de: "❌ Fehler beim Initialisieren der globalen Konfiguration: %{error}"
+    it: "❌ Errore nell'inizializzazione della configurazione globale: %{error}"
+  global_config_already_initialized:
+    zh: "❌ 全局配置已初始化"
+    en: "❌ Global config already initialized"
+    ja: "❌ グローバル設定はすでに初期化されています"
+    ko: "❌ 전역 설정은 이미 초기화되었습니다"
+    es: "❌ La configuración global ya está inicializada"
+    fr: "❌ La configuration globale est déjà initialisée"
+    de: "❌ Die globale Konfiguration ist bereits initialisiert"
+    it: "❌ La configurazione globale è già inizializzata"

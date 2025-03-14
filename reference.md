@@ -15,15 +15,48 @@ use crate::{
     sources::{CratesioClient, GitHubClient},
 };
 
+
+#[macro_use]
+extern crate rust_i18n;
+
+rust_i18n::i18n!(
+    "locales",
+    fallback = ["en", "ja", "ko", "es", "fr", "de", "it"]
+);
+
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // 初始化 tracing 日志系统
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
+
+   init_log(Level::Info);
 
     let cli = Cli::parse();
     process_dependencies(&cli).await
+}
+
+#[instrument(level = "INFO")]
+pub fn init_log(log_level: Level) -> Result<()> {
+    // 初始化日志
+    let mut log_fmt = fmt()
+        .with_env_filter(
+            EnvFilter::builder()
+                .with_default_directive(log_level.into())
+                .from_env_lossy(),
+        )
+        .with_level(true);
+
+    #[cfg(debug_assertions)]
+    {
+        log_fmt = log_fmt
+            .with_target(true)
+            .with_thread_ids(true)
+            .with_line_number(true)
+            .with_file(true);
+    }
+
+    log_fmt.init();
+    Ok(())
 }
 
 #[instrument(skip_all)]
@@ -143,7 +176,7 @@ impl DependencySource {
 use clap::{Arg, ArgAction, Command};
 
 pub fn build_cli() -> Command {
-    Command::new("cargo-thanks")
+    Command::new("cargo-thanku")
         .about("Give thanks to your Rust dependencies")
         .version(env!("CARGO_PKG_VERSION"))
         .arg(

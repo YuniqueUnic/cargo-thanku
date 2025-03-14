@@ -20,6 +20,12 @@ pub enum AppError {
     #[error("Invalid URL: {0}")]
     UrlError(#[from] url::ParseError),
 
+    #[error("Invalid output format: {0}")]
+    InvalidOutputFormat(String),
+
+    #[error("Invalid link source: {0}")]
+    InvalidLinkSource(String),
+
     #[error("Unknown error: {0}")]
     Unknown(String),
 }
@@ -29,5 +35,3 @@ impl From<String> for AppError {
         Self::Unknown(error)
     }
 }
-
-pub type AppResult<T> = Result<T, AppError>;

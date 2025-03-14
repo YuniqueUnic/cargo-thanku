@@ -70,7 +70,10 @@ impl CratesioClient {
                     env!("CARGO_PKG_VERSION")
                 ))
                 .build()
-                .expect("Failed to create HTTP client"),
+                .expect(&format!(
+                    "{}",
+                    t!("sources.failed_to_create_http_client.zh")
+                )),
         }
     }
 

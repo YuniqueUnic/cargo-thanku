@@ -5,6 +5,7 @@ mod sources;
 
 use anyhow::Result;
 use cargo_metadata::MetadataCommand;
+use rust_i18n::t;
 use std::collections::HashMap;
 use tracing::{debug, info, instrument};
 
@@ -15,20 +16,30 @@ use crate::{
     sources::{CratesioClient, GitHubClient, Source},
 };
 
+#[macro_use]
+extern crate rust_i18n;
+
+rust_i18n::i18n!(
+    "locales",
+    fallback = ["en", "ja", "ko", "es", "fr", "de", "it"]
+);
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize tracing
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
+    init_log(tracing::Level::INFO)?;
 
     let matches = build_cli().get_matches();
 
     // Handle completions subcommand
     if let Some(matches) = matches.subcommand_matches("completions") {
         if let Some(shell) = matches.get_one::<String>("shell") {
-            generate_completions(shell)
-                .map_err(|e| anyhow::anyhow!("Failed to generate completions: {}", e))?;
+            generate_completions(shell).map_err(|e| {
+                anyhow::anyhow!(t!(
+                    "main.failed_generate_completions.zh",
+                    error = e.to_string()
+                ))
+            })?;
             return Ok(());
         }
     }
@@ -38,6 +49,30 @@ async fn main() -> Result<()> {
     Config::init(config)?;
 
     process_dependencies().await
+}
+
+#[instrument(level = "INFO")]
+pub fn init_log(log_level: tracing::Level) -> Result<()> {
+    // 初始化日志
+    let mut log_fmt = tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::builder()
+                .with_default_directive(log_level.into())
+                .from_env_lossy(),
+        )
+        .with_level(true);
+
+    #[cfg(debug_assertions)]
+    {
+        log_fmt = log_fmt
+            .with_target(true)
+            .with_thread_ids(true)
+            .with_line_number(true)
+            .with_file(true);
+    }
+
+    log_fmt.init();
+    Ok(())
 }
 
 #[instrument(skip_all)]
@@ -58,7 +93,7 @@ async fn process_dependencies() -> Result<()> {
         }
     }
 
-    debug!("Found {} unique dependencies", deps.len());
+    debug!("{}", t!("main.found_dependencies.zh", count = deps.len()));
 
     // Initialize clients
     let crates_io_client = CratesioClient::new();
@@ -76,7 +111,14 @@ async fn process_dependencies() -> Result<()> {
                 results.push((name, source));
             }
             Err(e) => {
-                tracing::warn!("Failed to process {}: {}", name, e);
+                tracing::warn!(
+                    "{}",
+                    t!(
+                        "main.failed_to_process_dependency.zh",
+                        name = name,
+                        error = e.to_string()
+                    )
+                );
             }
         }
     }
@@ -116,7 +158,7 @@ async fn process_dependency(
             Ok(source)
         } else {
             Ok(Source::Other {
-                description: format!("Unknown source: {}", repo_url),
+                description: format!("{}", t!("main.unknown_source.zh", source = repo_url)),
             })
         }
     } else {
@@ -130,7 +172,12 @@ async fn process_dependency(
 fn generate_output(results: &[(String, Source)], format: &OutputFormat) -> Result<()> {
     match format {
         OutputFormat::MarkdownTable => {
-            println!("| Name | Source | Stats |");
+            println!(
+                "| {} | {} | {} |",
+                t!("main.name.zh"),
+                t!("main.source.zh"),
+                t!("main.stats.zh")
+            );
             println!("|------|--------|-------|");
             for (name, source) in results {
                 match source {
@@ -162,10 +209,10 @@ fn generate_output(results: &[(String, Source)], format: &OutputFormat) -> Resul
         }
         _ => {
             // TODO: Implement other output formats
-            return Err(anyhow::anyhow!(
-                "Output format {:?} not yet implemented",
-                format
-            ));
+            return Err(anyhow::anyhow!(t!(
+                "main.format_is_not_implemented_yet.zh",
+                format = format
+            )));
         }
     }
 
