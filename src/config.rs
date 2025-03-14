@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::fmt;
 use std::path::PathBuf;
 use std::sync::OnceLock;
+use tracing::instrument;
 
 use crate::errors::AppError;
 
@@ -76,6 +77,9 @@ pub struct Config {
     pub format: OutputFormat,
     pub link_source: LinkSource,
     pub github_token: Option<String>,
+    pub crates_token: Option<String>,
+    pub language: String,
+    pub verbose: bool,
 }
 
 impl Default for Config {
@@ -87,6 +91,9 @@ impl Default for Config {
             format: OutputFormat::default(),
             link_source: LinkSource::default(),
             github_token: None,
+            crates_token: None,
+            language: String::from("zh"),
+            verbose: false,
         }
     }
 }
@@ -97,15 +104,17 @@ impl Config {
     pub fn global() -> Result<&'static Config> {
         GLOBAL_CONFIG
             .get()
-            .ok_or_else(|| anyhow::anyhow!(t!("config.failed_to_initialize_global_config.zh")))
+            .ok_or_else(|| anyhow::anyhow!(t!("config.failed_to_initialize_global_config")))
     }
 
+    #[instrument]
     pub fn init(config: Config) -> Result<()> {
         GLOBAL_CONFIG
             .set(config)
-            .map_err(|_| anyhow::anyhow!(t!("config.global_config_already_initialized.zh")))
+            .map_err(|_| anyhow::anyhow!(t!("config.global_config_already_initialized")))
     }
 
+    #[instrument(skip_all)]
     pub fn from_matches(matches: &clap::ArgMatches) -> Result<Self> {
         let input = matches
             .get_one::<PathBuf>("input")
@@ -133,6 +142,14 @@ impl Config {
             .unwrap_or_default();
 
         let github_token = matches.get_one::<String>("token").cloned();
+        let crates_token = matches.get_one::<String>("crates-token").cloned();
+
+        let language = matches
+            .get_one::<String>("language")
+            .cloned()
+            .unwrap_or_default();
+
+        let verbose = matches.get_flag("verbose");
 
         Ok(Self {
             input,
@@ -141,6 +158,9 @@ impl Config {
             format,
             link_source,
             github_token,
+            crates_token,
+            language,
+            verbose,
         })
     }
 }

@@ -33,14 +33,14 @@ app:
     de: danke
     it: grazie
   description: 
-    zh: ❤️‍🔥 生成你的 Rust 项目依赖的感谢清单
-    en: ❤️‍🔥 Generate acknowledgments for your Rust project dependencies
-    ja: ❤️‍🔥 ありがとうございます
-    ko: ❤️‍🔥 감사합니다
-    es: ❤️‍🔥 gracias
-    fr: ❤️‍🔥 merci
-    de: ❤️‍🔥 danke
-    it: ❤️‍🔥 grazie
+    zh: 💖 生成你的 Rust 项目依赖的感谢清单
+    en: 💖 Generate acknowledgments for your Rust project dependencies
+    ja: 💖 ありがとうございます
+    ko: 💖 감사합니다
+    es: 💖 gracias
+    fr: 💖 merci
+    de: 💖 danke
+    it: 💖 grazie
 
 main:
   name:
@@ -156,14 +156,14 @@ main:
 
 cli:
   about:
-    zh: ❤️‍🔥 生成你的 Rust 项目依赖的感谢清单
-    en: ❤️‍🔥 Generate acknowledgments for your Rust project dependencies
-    ja: ❤️‍🔥 ありがとうございます
-    ko: ❤️‍🔥 감사합니다
-    es: ❤️‍🔥 gracias
-    fr: ❤️‍🔥 merci
-    de: ❤️‍🔥 danke
-    it: ❤️‍🔥 grazie
+    zh: 💖 生成你的 Rust 项目依赖的感谢清单
+    en: 💖 Generate acknowledgments for your Rust project dependencies
+    ja: 💖 ありがとうございます
+    ko: 💖 감사합니다
+    es: 💖 gracias
+    fr: 💖 merci
+    de: 💖 danke
+    it: 💖 grazie
   input:
     zh: 输入文件
     en: Input file
@@ -300,14 +300,32 @@ cli:
     de: Sprache
     it: lingua
   language_help:
-    zh: 语言 (zh, en, ja, ko, es, fr, de, it)
-    en: Language (zh, en, ja, ko, es, fr, de, it)
-    ja: 言語 (zh, en, ja, ko, es, fr, de, it)
-    ko: 언어 (zh, en, ja, ko, es, fr, de, it)
-    es: idioma (zh, en, ja, ko, es, fr, de, it)
-    fr: langue (zh, en, ja, ko, es, fr, de, it)
-    de: Sprache (zh, en, ja, ko, es, fr, de, it)
-    it: lingua (zh, en, ja, ko, es, fr, de, it)
+    zh: 更改语言
+    en: Change language
+    ja: 言語を変更
+    ko: 언어 변경
+    es: cambiar idioma
+    fr: changer langue
+    de: Sprache ändern
+    it: cambiare lingua
+  verbose:
+    zh: 详细输出
+    en: Verbose output
+    ja: 詳細な出力
+    ko: 상세한 출력
+    es: salida detallada
+    fr: sortie détaillée
+    de: detaillierte Ausgabe
+    it: output dettagliato
+  verbose_help:
+    zh: 详细输出，会输出更多信息，适用于调试
+    en: Verbose output, more information will be output, suitable for debugging
+    ja: 詳細な出力，より多くの情報が出力されます，デバッグに適しています
+    ko: 상세한 출력, 더 많은 정보가 출력됩니다, 디버깅에 적합합니다
+    es: salida detallada, se mostrará más información, adecuado para depuración
+    fr: sortie détaillée, plus d'informations seront affichées, adapté pour le débogage
+    de: detaillierte Ausgabe, mehr Informationen werden ausgegeben, geeignet für das Debuggen
+    it: output dettagliato, più informazioni verranno visualizzate, adatto per il debug
   completions_about:
     zh: 生成 shell 补全
     en: Generate shell completions

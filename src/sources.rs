@@ -2,6 +2,7 @@ use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
 use std::time::Duration;
+use tracing::instrument;
 use url::Url;
 
 #[derive(Debug, Clone)]
@@ -70,13 +71,11 @@ impl CratesioClient {
                     env!("CARGO_PKG_VERSION")
                 ))
                 .build()
-                .expect(&format!(
-                    "{}",
-                    t!("sources.failed_to_create_http_client.zh")
-                )),
+                .expect(&format!("{}", t!("sources.failed_to_create_http_client"))),
         }
     }
 
+    #[instrument(skip(self))]
     pub async fn get_crate_info(&self, name: &str) -> Result<CrateInfo> {
         let url = format!("https://crates.io/api/v1/crates/{}", name);
         let response = self.client.get(&url).send().await?;
@@ -113,12 +112,14 @@ impl GitHubClient {
         Ok(Self { client })
     }
 
+    #[instrument(skip(self))]
     pub async fn star_repository(&self, owner: &str, repo: &str) -> Result<()> {
         let url = format!("https://api.github.com/user/starred/{}/{}", owner, repo);
         self.client.put(&url).send().await?;
         Ok(())
     }
 
+    #[instrument(skip(self))]
     pub async fn get_repository_info(&self, owner: &str, repo: &str) -> Result<RepositoryInfo> {
         let url = format!("https://api.github.com/repos/{}/{}", owner, repo);
         let response = self.client.get(&url).send().await?;

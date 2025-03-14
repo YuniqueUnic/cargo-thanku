@@ -21,7 +21,7 @@ extern crate rust_i18n;
 
 rust_i18n::i18n!(
     "locales",
-    fallback = ["en", "ja", "ko", "es", "fr", "de", "it"]
+    fallback = ["zh", "en", "ja", "ko", "es", "fr", "de", "it"]
 );
 
 #[tokio::main]
@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
         if let Some(shell) = matches.get_one::<String>("shell") {
             generate_completions(shell).map_err(|e| {
                 anyhow::anyhow!(t!(
-                    "main.failed_generate_completions.zh",
+                    "main.failed_generate_completions",
                     error = e.to_string()
                 ))
             })?;
@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
     process_dependencies().await
 }
 
-#[instrument(level = "INFO")]
+#[instrument]
 pub fn init_log(log_level: tracing::Level) -> Result<()> {
     // 初始化日志
     let mut log_fmt = tracing_subscriber::fmt()
@@ -93,7 +93,7 @@ async fn process_dependencies() -> Result<()> {
         }
     }
 
-    debug!("{}", t!("main.found_dependencies.zh", count = deps.len()));
+    debug!("{}", t!("main.found_dependencies", count = deps.len()));
 
     // Initialize clients
     let crates_io_client = CratesioClient::new();
@@ -114,7 +114,7 @@ async fn process_dependencies() -> Result<()> {
                 tracing::warn!(
                     "{}",
                     t!(
-                        "main.failed_to_process_dependency.zh",
+                        "main.failed_to_process_dependency",
                         name = name,
                         error = e.to_string()
                     )
@@ -158,7 +158,7 @@ async fn process_dependency(
             Ok(source)
         } else {
             Ok(Source::Other {
-                description: format!("{}", t!("main.unknown_source.zh", source = repo_url)),
+                description: format!("{}", t!("main.unknown_source", source = repo_url)),
             })
         }
     } else {
@@ -169,14 +169,15 @@ async fn process_dependency(
     }
 }
 
+#[instrument(skip(results))]
 fn generate_output(results: &[(String, Source)], format: &OutputFormat) -> Result<()> {
     match format {
         OutputFormat::MarkdownTable => {
             println!(
                 "| {} | {} | {} |",
-                t!("main.name.zh"),
-                t!("main.source.zh"),
-                t!("main.stats.zh")
+                t!("main.name"),
+                t!("main.source"),
+                t!("main.stats")
             );
             println!("|------|--------|-------|");
             for (name, source) in results {
@@ -210,7 +211,7 @@ fn generate_output(results: &[(String, Source)], format: &OutputFormat) -> Resul
         _ => {
             // TODO: Implement other output formats
             return Err(anyhow::anyhow!(t!(
-                "main.format_is_not_implemented_yet.zh",
+                "main.format_is_not_implemented_yet",
                 format = format
             )));
         }
