@@ -7,6 +7,7 @@ use anyhow::Result;
 use cargo_metadata::MetadataCommand;
 use rust_i18n::t;
 use tracing::{Level, debug, info, instrument};
+use url::Url;
 
 use std::collections::HashMap;
 
@@ -48,9 +49,12 @@ async fn main() -> Result<()> {
 
     // Handle completions subcommand
     handle_completions(&matches)?;
-    handle_test(&matches)?;
 
-    dbg!("process_dependencies");
+    #[cfg(debug_assertions)]
+    {
+        handle_test(&matches)?;
+    }
+
     process_dependencies().await
 }
 
@@ -117,12 +121,14 @@ fn handle_test(matches: &clap::ArgMatches) -> Result<()> {
 }
 
 #[instrument(skip_all)]
-async fn process_dependencies() -> Result<()> {
-    let config = Config::global()?;
-
+fn get_dependencies<P>(cargo_toml_path: P) -> Result<HashMap<String, cargo_metadata::Dependency>>
+where
+    P: AsRef<std::path::Path>,
+{
     // Get cargo metadata
     let metadata = MetadataCommand::new()
-        .manifest_path(&config.input)
+        .manifest_path(cargo_toml_path.as_ref())
+        .no_deps() // 只获取当前包的依赖
         .exec()
         .map_err(AppError::MetadataError)?;
 
@@ -135,6 +141,15 @@ async fn process_dependencies() -> Result<()> {
     }
 
     debug!("{}", t!("main.found_dependencies", count = deps.len()));
+    Ok(deps)
+}
+
+#[instrument(skip_all)]
+async fn process_dependencies() -> Result<()> {
+    let config = Config::global()?;
+
+    // Get cargo metadata
+    let deps = get_dependencies(&config.get_cargo_toml_path()?)?;
 
     // Initialize clients
     let crates_io_client = CratesioClient::new();
@@ -181,7 +196,7 @@ async fn process_dependency(
 
     // Try to get source information
     if let Some(repo_url) = &crate_info.repository {
-        if let Some(mut source) = Source::from_url(&Some(repo_url.clone())) {
+        if let Some(mut source) = Source::from_url(&Some(Url::parse(repo_url)?)) {
             // If it's a GitHub repository and we have a token, try to star it and get more info
             if let (Some(client), Source::GitHub { owner, repo, stars }) =
                 (github_client, &mut source)
@@ -205,6 +220,14 @@ async fn process_dependency(
         })
     }
 }
+
+// pub enum OutputFormat {
+//     MarkdownTable,
+//     MarkdownList,
+//     Json,
+//     Toml,
+//     Yaml,
+// }
 
 #[instrument(skip(results))]
 fn generate_output(results: &[(String, Source)], format: &OutputFormat) -> Result<()> {
@@ -243,6 +266,12 @@ fn generate_output(results: &[(String, Source)], format: &OutputFormat) -> Resul
                         println!("| {} | {} | ❓ |", name, description);
                     }
                 }
+            }
+        }
+        OutputFormat::MarkdownList => {
+            println!("{}", t!("main.name"));
+            for (name, source) in results {
+                println!("{}", name);
             }
         }
         _ => {
