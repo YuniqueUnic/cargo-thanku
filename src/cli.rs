@@ -109,7 +109,6 @@ pub fn build_cli() -> Command {
                 .long("name")
                 .help(format!("{}", t!("cli.name_help")))
                 .global(true)
-                .value_hint(clap::ValueHint::Other) // Changed from FilePath
                 .default_value("thanks"),
             Arg::new("format")
                 .short('f')
@@ -156,6 +155,20 @@ pub fn build_cli() -> Command {
                 .env("VERBOSE")
                 .default_value("false")
                 .action(ArgAction::SetTrue),
+            Arg::new("concurrent")
+                .short('j')
+                .long("concurrent")
+                .help(format!("{}", t!("cli.concurrent_help")))
+                .global(true)
+                .value_parser(clap::value_parser!(usize))
+                .default_value("5"),
+            Arg::new("retries")
+                .short('r')
+                .long("retries")
+                .help(format!("{}", t!("cli.retries_help")))
+                .global(true)
+                .value_parser(clap::value_parser!(u32))
+                .default_value("3"),
         ])
         .subcommand(
             Command::new("completions")

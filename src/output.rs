@@ -43,16 +43,18 @@ impl std::str::FromStr for OutputFormat {
 }
 
 /// 表示一个依赖项的信息
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct DependencyInfo {
     pub name: String,
     pub source_type: String,
     pub source_url: Option<String>,
     pub stats: DependencyStats,
+    pub failed: bool,
+    pub error_message: Option<String>,
 }
 
 /// 依赖项的统计信息
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct DependencyStats {
     pub stars: Option<u32>,
     pub downloads: Option<u32>,
@@ -72,12 +74,13 @@ impl Formatter for MarkdownTableFormatter {
 
         // 表头
         output.push_str(&format!(
-            "| {} | {} | {} |\n",
+            "| {} | {} | {} | {} |\n",
             t!("output.name"),
             t!("output.source"),
-            t!("output.stats")
+            t!("output.stats"),
+            t!("output.status")
         ));
-        output.push_str("|------|--------|-------|\n");
+        output.push_str("|------|--------|-------|--------|\n");
 
         // 内容
         for dep in deps {
@@ -93,7 +96,16 @@ impl Formatter for MarkdownTableFormatter {
                 dep.source_type.clone()
             };
 
-            output.push_str(&format!("| {} | {} | {} |\n", dep.name, source, stats));
+            let status = if dep.failed {
+                format!("❌ {}", dep.error_message.as_deref().unwrap_or("Failed"))
+            } else {
+                "✅".to_string()
+            };
+
+            output.push_str(&format!(
+                "| {} | {} | {} | {} |\n",
+                dep.name, source, stats, status
+            ));
         }
 
         Ok(output)
@@ -115,10 +127,19 @@ impl Formatter for MarkdownListFormatter {
                 _ => "❓".to_string(),
             };
 
-            if let Some(url) = &dep.source_url {
-                output.push_str(&format!("- [{}]({}) ({})\n", dep.name, url, stats));
+            let status = if dep.failed {
+                format!("❌ {}", dep.error_message.as_deref().unwrap_or("Failed"))
             } else {
-                output.push_str(&format!("- {} ({})\n", dep.name, stats));
+                "✅".to_string()
+            };
+
+            if let Some(url) = &dep.source_url {
+                output.push_str(&format!(
+                    "- [{}]({}) ({}) {}\n",
+                    dep.name, url, stats, status
+                ));
+            } else {
+                output.push_str(&format!("- {} ({}) {}\n", dep.name, stats, status));
             }
         }
 
@@ -153,48 +174,14 @@ impl Formatter for YamlFormatter {
     }
 }
 
-/// 输出器特征
-pub trait Writer {
-    fn write(&mut self, content: &str) -> Result<()>;
-}
-
-/// 标准输出写入器
-pub struct StdoutWriter;
-
-impl Writer for StdoutWriter {
-    fn write(&mut self, content: &str) -> Result<()> {
-        print!("{}", content);
-        io::stdout().flush()?;
-        Ok(())
-    }
-}
-
-/// 文件写入器
-pub struct FileWriter {
-    path: std::path::PathBuf,
-}
-
-impl FileWriter {
-    pub fn new<P: Into<std::path::PathBuf>>(path: P) -> Self {
-        Self { path: path.into() }
-    }
-}
-
-impl Writer for FileWriter {
-    fn write(&mut self, content: &str) -> Result<()> {
-        std::fs::write(&self.path, content)?;
-        Ok(())
-    }
-}
-
-/// 输出管理器
-pub struct OutputManager {
+// 输出管理器
+pub struct OutputManager<W: Write> {
     formatter: Box<dyn Formatter>,
-    writer: Box<dyn Writer>,
+    writer: W,
 }
 
-impl OutputManager {
-    pub fn new(format: OutputFormat, writer: Box<dyn Writer>) -> Self {
+impl<W: Write> OutputManager<W> {
+    pub fn new(format: OutputFormat, writer: W) -> Self {
         let formatter: Box<dyn Formatter> = match format {
             OutputFormat::MarkdownTable => Box::new(MarkdownTableFormatter),
             OutputFormat::MarkdownList => Box::new(MarkdownListFormatter),
@@ -208,7 +195,9 @@ impl OutputManager {
 
     pub fn write(&mut self, deps: &[DependencyInfo]) -> Result<()> {
         let content = self.formatter.format(deps)?;
-        self.writer.write(&content)
+        self.writer.write_all(content.as_bytes())?;
+        self.writer.flush()?;
+        Ok(())
     }
 }
 
@@ -223,6 +212,8 @@ impl From<(&str, &Source)> for DependencyInfo {
                     stars: *stars,
                     downloads: None,
                 },
+                failed: false,
+                error_message: None,
             },
             Source::CratesIo { downloads, .. } => Self {
                 name: name.to_string(),
@@ -232,6 +223,8 @@ impl From<(&str, &Source)> for DependencyInfo {
                     stars: None,
                     downloads: *downloads,
                 },
+                failed: false,
+                error_message: None,
             },
             Source::Link { url } => Self {
                 name: name.to_string(),
@@ -241,6 +234,8 @@ impl From<(&str, &Source)> for DependencyInfo {
                     stars: None,
                     downloads: None,
                 },
+                failed: false,
+                error_message: None,
             },
             Source::Other { description } => Self {
                 name: name.to_string(),
@@ -250,6 +245,8 @@ impl From<(&str, &Source)> for DependencyInfo {
                     stars: None,
                     downloads: None,
                 },
+                failed: false,
+                error_message: None,
             },
         }
     }
@@ -257,8 +254,9 @@ impl From<(&str, &Source)> for DependencyInfo {
 
 #[cfg(test)]
 mod tests {
+    use crate::config::Config;
+
     use super::*;
-    use crate::sources::Source;
 
     #[test]
     fn test_markdown_table_formatter() {
@@ -270,11 +268,142 @@ mod tests {
                 stars: Some(1000),
                 downloads: None,
             },
+            failed: false,
+            error_message: None,
         }];
 
         let formatter = MarkdownTableFormatter;
         let result = formatter.format(&deps).unwrap();
+        println!("{}", result);
         assert!(result.contains("| serde |"));
-        assert!(result.contains("�� 1000"));
+        assert!(result.contains(" 🌟 1000"));
+    }
+
+    #[test]
+    fn test_write_to_memory() {
+        let deps = vec![DependencyInfo {
+            name: "serde".to_string(),
+            source_type: "GitHub".to_string(),
+            source_url: Some("https://github.com/serde-rs/serde".to_string()),
+            stats: DependencyStats {
+                stars: Some(1000),
+                downloads: None,
+            },
+            failed: false,
+            error_message: None,
+        }];
+
+        let mut buffer = Vec::new();
+        let mut manager = OutputManager::new(OutputFormat::MarkdownTable, &mut buffer);
+        manager.write(&deps).unwrap();
+
+        let output = String::from_utf8(buffer).unwrap();
+        assert!(output.contains("| serde |"));
+        assert!(output.contains("🌟 1000"));
+    }
+
+    #[test]
+    fn test_write_to_file() -> Result<()> {
+        let deps = vec![DependencyInfo {
+            name: "serde".to_string(),
+            source_type: "GitHub".to_string(),
+            source_url: Some("https://github.com/serde-rs/serde".to_string()),
+            stats: DependencyStats {
+                stars: Some(1000),
+                downloads: None,
+            },
+            failed: false,
+            error_message: None,
+        }];
+
+        let temp_dir = assert_fs::TempDir::new()?;
+        let file_path = temp_dir.path().join("test-output.md");
+        let file = std::fs::File::create(&file_path)?;
+
+        let mut manager = OutputManager::new(OutputFormat::MarkdownTable, file);
+        manager.write(&deps)?;
+
+        let content = std::fs::read_to_string(&file_path)?;
+        assert!(content.contains("| serde |"));
+        assert!(content.contains("🌟 1000"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_to_output_writer_stdout() -> Result<()> {
+        let deps = vec![DependencyInfo {
+            name: "serde".to_string(),
+            source_type: "GitHub".to_string(),
+            source_url: Some("https://github.com/serde-rs/serde".to_string()),
+            stats: DependencyStats {
+                stars: Some(1000),
+                downloads: None,
+            },
+            failed: false,
+            error_message: None,
+        }];
+
+        let config = Config::default();
+
+        let mut output = config.get_output_writer()?;
+        let mut manager = OutputManager::new(OutputFormat::MarkdownTable, &mut output);
+        manager.write(&deps)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_to_output_writer_stdout_with_failed_dependency() -> Result<()> {
+        let deps = vec![DependencyInfo {
+            name: "serde".to_string(),
+            source_type: "GitHub".to_string(),
+            source_url: Some("https://github.com/serde-rs/serde".to_string()),
+            stats: DependencyStats {
+                stars: Some(1000),
+                downloads: None,
+            },
+            failed: true,
+            error_message: Some("Failed to fetch repository info".to_string()),
+        }];
+
+        let config = Config::default();
+
+        let mut output = config.get_output_writer()?;
+        let mut manager = OutputManager::new(OutputFormat::MarkdownTable, &mut output);
+        manager.write(&deps)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_write_to_output_writer_file() -> Result<()> {
+        let deps = vec![DependencyInfo {
+            name: "serde".to_string(),
+            source_type: "GitHub".to_string(),
+            source_url: Some("https://github.com/serde-rs/serde".to_string()),
+            stats: DependencyStats {
+                stars: Some(1000),
+                downloads: None,
+            },
+            failed: false,
+            error_message: None,
+        }];
+
+        let temp_dir = assert_fs::TempDir::new()?;
+        let file_path = temp_dir.path().join("test-output.md");
+
+        let mut config = Config::default();
+        config.output = Some(file_path.clone());
+
+        let mut output = config.get_output_writer()?;
+        let mut manager = OutputManager::new(OutputFormat::MarkdownTable, &mut output);
+        manager.write(&deps)?;
+
+        let content = std::fs::read_to_string(&file_path)?;
+        assert!(content.contains("| serde |"));
+        assert!(content.contains("🌟 1000"));
+
+        Ok(())
     }
 }
