@@ -43,33 +43,6 @@ app:
     it: 💖 grazie
 
 main:
-  name:
-    zh: 名称
-    en: Name
-    ja: 名前
-    ko: 이름
-    es: nombre
-    fr: nom
-    de: name
-    it: nome
-  source:
-    zh: 来源
-    en: Source
-    ja: ソース
-    ko: 소스
-    es: fuente
-    fr: source
-    de: quelle
-    it: fonte
-  stats:
-    zh: 统计
-    en: Stats
-    ja: 統計
-    ko: 통계
-    es: estadísticas
-    fr: statistiques
-    de: statistiken
-    it: statistiche
   failed_generate_completions:
     zh: "❌ 自动补全生成失败：%{error}"
     en: "❌ Failed to generate completions: %{error}"
@@ -395,3 +368,41 @@ config:
     fr: "❌ Cargo.toml non trouvé: %{path}"
     de: "❌ Cargo.toml nicht gefunden: %{path}"
     it: "❌ Cargo.toml non trovato: %{path}"
+
+output:
+  name:
+    zh: 名称
+    en: Name
+    ja: 名前
+    ko: 이름
+    es: nombre
+    fr: nom
+    de: name
+    it: nome
+  source:
+    zh: 来源
+    en: Source
+    ja: ソース
+    ko: 소스
+    es: fuente
+    fr: source
+    de: quelle
+    it: fonte
+  stats:
+    zh: 统计
+    en: Stats
+    ja: 統計
+    ko: 통계
+    es: estadísticas
+    fr: statistiques
+    de: statistiken
+    it: statistiche
+  dependencies:
+    zh: 依赖
+    en: Dependencies
+    ja: 依存関係
+    ko: 종속성
+    es: dependencias
+    fr: dépendances
+    de: Abhängigkeiten
+    it: dipendenze

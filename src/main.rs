@@ -1,10 +1,12 @@
 mod cli;
 mod config;
 mod errors;
+mod output;
 mod sources;
 
 use anyhow::Result;
 use cargo_metadata::MetadataCommand;
+use output::OutputFormat;
 use rust_i18n::t;
 use tracing::{Level, debug, info, instrument};
 use url::Url;
@@ -13,8 +15,9 @@ use std::collections::HashMap;
 
 use crate::{
     cli::{build_cli, generate_completions},
-    config::{Config, OutputFormat},
+    config::Config,
     errors::AppError,
+    output::{DependencyInfo, FileWriter, OutputManager, StdoutWriter},
     sources::{CratesioClient, GitHubClient, Source},
 };
 
@@ -221,67 +224,26 @@ async fn process_dependency(
     }
 }
 
-// pub enum OutputFormat {
-//     MarkdownTable,
-//     MarkdownList,
-//     Json,
-//     Toml,
-//     Yaml,
-// }
-
 #[instrument(skip(results))]
 fn generate_output(results: &[(String, Source)], format: &OutputFormat) -> Result<()> {
-    match format {
-        OutputFormat::MarkdownTable => {
-            println!(
-                "| {} | {} | {} |",
-                t!("main.name"),
-                t!("main.source"),
-                t!("main.stats")
-            );
-            println!("|------|--------|-------|");
-            for (name, source) in results {
-                match source {
-                    Source::GitHub { owner, repo, stars } => {
-                        println!(
-                            "| {} | [GitHub](https://github.com/{}/{}) | 🌟 {} |",
-                            name,
-                            owner,
-                            repo,
-                            stars.unwrap_or(0)
-                        );
-                    }
-                    Source::CratesIo { downloads, .. } => {
-                        println!(
-                            "| {} | [crates.io](https://crates.io/crates/{}) | 📦 {} |",
-                            name,
-                            name,
-                            downloads.unwrap_or(0)
-                        );
-                    }
-                    Source::Link { url } => {
-                        println!("| {} | [Source]({}) | 🔗 |", name, url);
-                    }
-                    Source::Other { description } => {
-                        println!("| {} | {} | ❓ |", name, description);
-                    }
-                }
-            }
-        }
-        OutputFormat::MarkdownList => {
-            println!("{}", t!("main.name"));
-            for (name, source) in results {
-                println!("{}", name);
-            }
-        }
-        _ => {
-            // TODO: Implement other output formats
-            return Err(anyhow::anyhow!(t!(
-                "main.format_is_not_implemented_yet",
-                format = format
-            )));
-        }
-    }
+    let config = Config::global()?;
+
+    // Convert results to DependencyInfo
+    let deps: Vec<DependencyInfo> = results
+        .iter()
+        .map(|(name, source)| DependencyInfo::from((name.as_str(), source)))
+        .collect();
+
+    // Create the appropriate writer based on config
+    let writer: Box<dyn output::Writer> = if config.output == std::path::PathBuf::from("-") {
+        Box::new(StdoutWriter)
+    } else {
+        Box::new(FileWriter::new(config.output.clone()))
+    };
+
+    // Create and use the output manager
+    let mut manager = OutputManager::new(*format, writer);
+    manager.write(&deps)?;
 
     Ok(())
 }
