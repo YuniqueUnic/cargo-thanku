@@ -1,46 +1,10 @@
 use anyhow::Result;
-use std::fmt;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tracing::instrument;
 
 use crate::errors::AppError;
-
-#[derive(Debug, Clone)]
-pub enum OutputFormat {
-    MarkdownTable,
-    MarkdownList,
-    Json,
-    Toml,
-    Yaml,
-}
-
-impl fmt::Display for OutputFormat {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_string())
-    }
-}
-
-impl Default for OutputFormat {
-    fn default() -> Self {
-        Self::MarkdownTable
-    }
-}
-
-impl std::str::FromStr for OutputFormat {
-    type Err = AppError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "markdown-table" => Self::MarkdownTable,
-            "markdown-list" => Self::MarkdownList,
-            "json" => Self::Json,
-            "toml" => Self::Toml,
-            "yaml" => Self::Yaml,
-            _ => return Err(AppError::InvalidOutputFormat(s.to_string())),
-        })
-    }
-}
+use crate::output::OutputFormat;
 
 #[derive(Debug, Clone)]
 pub enum LinkSource {
