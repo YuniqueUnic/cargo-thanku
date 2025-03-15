@@ -11,13 +11,17 @@ use rust_i18n::t;
 use tracing::{Level, debug, info, instrument};
 use url::Url;
 
+use futures::future::join_all;
 use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Semaphore;
 
 use crate::{
     cli::{build_cli, generate_completions},
     config::Config,
     errors::AppError,
-    output::{DependencyInfo, FileWriter, OutputManager, StdoutWriter},
+    output::{DependencyInfo, DependencyStats, OutputManager},
     sources::{CratesioClient, GitHubClient, Source},
 };
 
@@ -147,43 +151,117 @@ where
     Ok(deps)
 }
 
+/// TODO: Check the concurrent requests
 #[instrument(skip_all)]
 async fn process_dependencies() -> Result<()> {
     let config = Config::global()?;
 
     // Get cargo metadata
     let deps = get_dependencies(&config.get_cargo_toml_path()?)?;
+    debug!("{}", t!("main.found_dependencies", count = deps.len()));
 
     // Initialize clients
-    let crates_io_client = CratesioClient::new();
+    let crates_io_client = Arc::new(CratesioClient::new());
     let github_client = if let Some(token) = &config.github_token {
-        Some(GitHubClient::new(token)?)
+        Some(Arc::new(GitHubClient::new(token)?))
     } else {
         None
     };
 
-    // Process each dependency
-    let mut results = Vec::new();
+    // Create semaphore to limit concurrent requests
+    let semaphore = Arc::new(Semaphore::new(config.max_concurrent_requests));
+    // Create tasks
+    let mut tasks: Vec<tokio::task::JoinHandle<Result<(String, DependencyInfo), AppError>>> =
+        Vec::new();
     for (name, _) in deps {
-        match process_dependency(&name, &crates_io_client, github_client.as_ref()).await {
-            Ok(source) => {
-                results.push((name, source));
+        let name = name.clone();
+        let crates_io_client = Arc::clone(&crates_io_client);
+        let github_client = github_client.as_ref().map(Arc::clone);
+        let semaphore = Arc::clone(&semaphore);
+        let max_retries = config.max_retries;
+
+        let task = tokio::spawn(async move {
+            let _permit = semaphore.acquire().await.unwrap();
+            let mut last_error = None;
+
+            for retry in 0..=max_retries {
+                match process_dependency(&name, &crates_io_client, github_client.as_deref()).await {
+                    Ok(info) => {
+                        if retry > 0 {
+                            debug!(
+                                "{}",
+                                t!("main.retry_succeeded", name = name, attempt = retry + 1)
+                            );
+                        }
+                        return Ok((name, info));
+                    }
+                    Err(e) => {
+                        last_error = Some(e);
+                        if retry < max_retries {
+                            let delay = Duration::from_secs(2u64.pow(retry));
+                            debug!(
+                                "{}",
+                                t!(
+                                    "main.retry_attempt",
+                                    name = name,
+                                    attempt = retry + 1,
+                                    max_retries = max_retries,
+                                    delay = delay.as_secs()
+                                )
+                            );
+                            tokio::time::sleep(delay).await;
+                            continue;
+                        }
+                    }
+                }
             }
-            Err(e) => {
-                tracing::warn!(
-                    "{}",
-                    t!(
-                        "main.failed_to_process_dependency",
-                        name = name,
-                        error = e.to_string()
-                    )
-                );
-            }
-        }
+
+            // 创建一个表示失败的 DependencyInfo
+            let error_msg = last_error.unwrap().to_string();
+            debug!(
+                "{}",
+                t!("main.max_retries_exceeded", name = name, error = error_msg)
+            );
+
+            Ok((
+                name.clone(),
+                DependencyInfo {
+                    name,
+                    source_type: "Unknown".to_string(),
+                    source_url: None,
+                    stats: DependencyStats {
+                        stars: None,
+                        downloads: None,
+                    },
+                    failed: true,
+                    error_message: Some(error_msg),
+                },
+            ))
+        });
+
+        tasks.push(task);
     }
 
+    // Wait for all tasks to complete and collect results
+    let results: Vec<_> = join_all(tasks)
+        .await
+        .into_iter()
+        .filter_map(|result| match result {
+            Ok(Ok(dep_result)) => Some(dep_result),
+            Ok(Err(e)) => {
+                debug!("{}", t!("main.dependency_processing_failed", error = e));
+                None
+            }
+            Err(e) => {
+                debug!("{}", t!("main.task_failed", error = e));
+                None
+            }
+        })
+        .collect();
+
     // Generate output
-    generate_output(&results, &config.format)?;
+    let format = config.format;
+    generate_output(&results, &format)?;
 
     Ok(())
 }
@@ -193,56 +271,128 @@ async fn process_dependency(
     name: &str,
     crates_io_client: &CratesioClient,
     github_client: Option<&GitHubClient>,
-) -> Result<Source> {
-    // Get crate info from crates.io
+) -> Result<DependencyInfo> {
+    // Get crate information from crates.io
     let crate_info = crates_io_client.get_crate_info(name).await?;
 
-    // Try to get source information
-    if let Some(repo_url) = &crate_info.repository {
-        if let Some(mut source) = Source::from_url(&Some(Url::parse(repo_url)?)) {
-            // If it's a GitHub repository and we have a token, try to star it and get more info
-            if let (Some(client), Source::GitHub { owner, repo, stars }) =
-                (github_client, &mut source)
-            {
-                if let Ok(repo_info) = client.get_repository_info(&owner, &repo).await {
-                    *stars = Some(repo_info.stargazers_count);
-                    client.star_repository(&owner, &repo).await?;
-                    info!("💖 {} {}", name, repo_info.html_url);
+    // Get repository URL if available
+    let (source_type, source_url, stats) = if let Some(repo) = crate_info.repository.as_ref() {
+        if let Ok(url) = Url::parse(repo) {
+            if url.host_str() == Some("github.com") {
+                // Extract owner and repo from GitHub URL
+                let path_segments: Vec<&str> = url
+                    .path_segments()
+                    .map(|segments| segments.collect())
+                    .unwrap_or_default();
+
+                if path_segments.len() >= 2 {
+                    let owner = path_segments[0];
+                    let repo = path_segments[1];
+
+                    // Get GitHub information if client is available
+                    if let Some(client) = github_client {
+                        match client.get_repository_info(owner, repo).await {
+                            Ok(repo_info) => {
+                                // Try to star the repository
+                                let _ = client.star_repository(owner, repo).await;
+                                info!("💖 {} {}", name, repo_info.html_url);
+
+                                (
+                                    "GitHub".to_string(),
+                                    Some(url.to_string()),
+                                    DependencyStats {
+                                        stars: Some(repo_info.stargazers_count),
+                                        downloads: None,
+                                    },
+                                )
+                            }
+                            Err(e) => {
+                                debug!("{}", t!("main.github_api_error", error = e.to_string()));
+                                (
+                                    "GitHub".to_string(),
+                                    Some(url.to_string()),
+                                    DependencyStats {
+                                        stars: None,
+                                        downloads: None,
+                                    },
+                                )
+                            }
+                        }
+                    } else {
+                        (
+                            "GitHub".to_string(),
+                            Some(url.to_string()),
+                            DependencyStats {
+                                stars: None,
+                                downloads: None,
+                            },
+                        )
+                    }
+                } else {
+                    (
+                        "Source".to_string(),
+                        Some(url.to_string()),
+                        DependencyStats {
+                            stars: None,
+                            downloads: None,
+                        },
+                    )
                 }
+            } else {
+                (
+                    "Source".to_string(),
+                    Some(url.to_string()),
+                    DependencyStats {
+                        stars: None,
+                        downloads: None,
+                    },
+                )
             }
-            Ok(source)
         } else {
-            Ok(Source::Other {
-                description: format!("{}", t!("main.unknown_source", source = repo_url)),
-            })
+            debug!("{}", t!("main.invalid_repo_url", url = repo));
+            (
+                "crates.io".to_string(),
+                Some(format!("https://crates.io/crates/{}", name)),
+                DependencyStats {
+                    stars: None,
+                    downloads: Some(crate_info.downloads),
+                },
+            )
         }
     } else {
-        Ok(Source::CratesIo {
-            name: name.to_string(),
-            downloads: Some(crate_info.downloads),
-        })
-    }
-}
-
-#[instrument(skip(results))]
-fn generate_output(results: &[(String, Source)], format: &OutputFormat) -> Result<()> {
-    let config = Config::global()?;
-
-    // Convert results to DependencyInfo
-    let deps: Vec<DependencyInfo> = results
-        .iter()
-        .map(|(name, source)| DependencyInfo::from((name.as_str(), source)))
-        .collect();
-
-    // Create the appropriate writer based on config
-    let writer: Box<dyn output::Writer> = if config.output == std::path::PathBuf::from("-") {
-        Box::new(StdoutWriter)
-    } else {
-        Box::new(FileWriter::new(config.output.clone()))
+        (
+            "crates.io".to_string(),
+            Some(format!("https://crates.io/crates/{}", name)),
+            DependencyStats {
+                stars: None,
+                downloads: Some(crate_info.downloads),
+            },
+        )
     };
 
-    // Create and use the output manager
-    let mut manager = OutputManager::new(*format, writer);
+    Ok(DependencyInfo {
+        name: name.to_string(),
+        source_type,
+        source_url,
+        stats,
+        failed: false,
+        error_message: None,
+    })
+}
+
+// 在 main.rs 中使用
+#[instrument(skip(results))]
+fn generate_output(results: &[(String, DependencyInfo)], format: &OutputFormat) -> Result<()> {
+    let config = Config::global()?;
+
+    let deps: Vec<DependencyInfo> = results
+        .iter()
+        .map(|(_, dep_info)| dep_info.clone())
+        .collect();
+
+    // 根据配置选择输出目标
+    let output = config.get_output_writer()?;
+    let mut manager = OutputManager::new(*format, output);
     manager.write(&deps)?;
 
     Ok(())

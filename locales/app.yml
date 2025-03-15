@@ -43,6 +43,69 @@ app:
     it: 💖 grazie
 
 main:
+  retry_succeeded:
+    zh: "✅ 重试 %{name} 成功"
+    en: "✅ Retry %{name} succeeded"
+    ja: "✅ %{name} の再試行に成功しました"
+    ko: "✅ %{name} 재시도에 성공했습니다"
+    es: "✅ Reintento %{name} exitoso"
+    fr: "✅ Réessai %{name} réussi"
+    de: "✅ Wiederholung %{name} erfolgreich"
+    it: "✅ Riavvio %{name} riuscito"
+  retry_attempt:
+    zh: "✅ 重试 %{name} 第 %{attempt} 次成功"
+    en: "✅ Retry %{name} attempt %{attempt} succeeded"
+    ja: "✅ %{name} の再試行 %{attempt} 回目に成功しました"
+    ko: "✅ %{name} 재시도 %{attempt} 번째에 성공했습니다"
+    es: "✅ Reintento %{name} intento %{attempt} exitoso"
+    fr: "✅ Réessai %{name} essai %{attempt} réussi"
+    de: "✅ Wiederholung %{name} Versuch %{attempt} erfolgreich"
+    it: "✅ Riavvio %{name} tentativo %{attempt} riuscito"
+  max_retries_exceeded:
+    zh: "❌ 重试 %{name} 超过最大次数：%{error}"
+    en: "❌ Max retries exceeded for %{name}: %{error}"
+    ja: "❌ %{name} の最大試行回数を超えました：%{error}"
+    ko: "❌ %{name} 의 최대 시도 횟수를 초과했습니다: %{error}"
+    es: "❌ Se excedió el número máximo de intentos para %{name}: %{error}"
+    fr: "❌ Le nombre maximum de tentatives pour %{name} a été dépassé : %{error}"
+    de: "❌ Die maximale Anzahl von Versuchen für %{name} wurde überschritten: %{error}"
+    it: "❌ Il numero massimo di tentativi per %{name} è stato superato: %{error}"
+  dependency_processing_failed:
+    zh: "❌ 处理依赖 %{name} 失败：%{error}"
+    en: "❌ Failed to process dependency %{name}: %{error}"
+    ja: "❌ %{name} の依存関係の処理に失敗しました：%{error}"
+    ko: "❌ %{name} 의 종속성 처리에 실패했습니다: %{error}"
+    es: "❌ Error al procesar la dependencia %{name}: %{error}"
+    fr: "❌ Erreur lors du traitement de la dépendance %{name}: %{error}"
+    de: "❌ Fehler beim Verarbeiten der Abhängigkeit %{name}: %{error}"
+    it: "❌ Errore nel processare la dipendenza %{name}: %{error}"
+  task_failed:
+    zh: "❌ 任务失败：%{error}"
+    en: "❌ Task failed: %{error}"
+    ja: "❌ タスクが失敗しました：%{error}"
+    ko: "❌ 작업이 실패했습니다: %{error}"
+    es: "❌ La tarea ha fallado: %{error}"
+    fr: "❌ La tâche a échoué : %{error}"
+    de: "❌ Die Aufgabe ist fehlgeschlagen: %{error}"
+    it: "❌ La task è fallita: %{error}"
+  github_api_error:
+    zh: "❌ GitHub API 错误：%{error}"
+    en: "❌ GitHub API error: %{error}"
+    ja: "❌ GitHub API エラー：%{error}"
+    ko: "❌ GitHub API 오류：%{error}"
+    es: "❌ Error de API de GitHub: %{error}"
+    fr: "❌ Erreur de l'API GitHub: %{error}"
+    de: "❌ GitHub API-Fehler: %{error}"
+    it: "❌ Errore dell'API GitHub: %{error}"
+  invalid_repo_url:
+    zh: "❌ 无效的仓库 URL：%{url}"
+    en: "❌ Invalid repository URL: %{url}"
+    ja: "❌ 無効なリポジトリ URL：%{url}"
+    ko: "❌ 유효하지 않은 저장소 URL：%{url}"
+    es: "❌ URL de repositorio inválida: %{url}"
+    fr: "❌ URL de dépôt invalide: %{url}"
+    de: "❌ Ungültige Repository-URL: %{url}"
+    it: "❌ URL del repository non valida: %{url}"
   failed_generate_completions:
     zh: "❌ 自动补全生成失败：%{error}"
     en: "❌ Failed to generate completions: %{error}"
@@ -297,6 +360,24 @@ cli:
     fr: sortie détaillée, plus d'informations seront affichées, adapté pour le débogage
     de: detaillierte Ausgabe, mehr Informationen werden ausgegeben, geeignet für das Debuggen
     it: output dettagliato, più informazioni verranno visualizzate, adatto per il debug
+  concurrent_help:
+    zh: 并发请求数
+    en: Concurrent requests
+    ja: 並列リクエスト数
+    ko: 병렬 요청 수
+    es: Número de solicitudes concurrentes
+    fr: Nombre de requêtes concurrentes
+    de: Anzahl der parallelen Anfragen
+    it: Numero di richieste parallele
+  retries_help:
+    zh: 重试次数
+    en: Number of retries
+    ja: 再試行回数
+    ko: 재시도 횟수
+    es: Número de intentos
+    fr: Nombre de tentatives
+    de: Anzahl der Wiederholungen
+    it: Numero di tentativi
   completions_about:
     zh: 生成 shell 补全
     en: Generate shell completions
@@ -368,6 +449,15 @@ config:
     fr: "❌ Cargo.toml non trouvé: %{path}"
     de: "❌ Cargo.toml nicht gefunden: %{path}"
     it: "❌ Cargo.toml non trovato: %{path}"
+  failed_to_open_output_file:
+    zh: "❌ 打开输出文件失败：%{path}，错误：%{error}"
+    en: "❌ Failed to open output file: %{path}, error: %{error}"
+    ja: "❌ 出力ファイルを開けませんでした：%{path}，エラー：%{error}"
+    ko: "❌ 출력 파일을 열 수 없습니다: %{path}，오류：%{error}"
+    es: "❌ Error al abrir el archivo de salida: %{path}, error: %{error}"
+    fr: "❌ Impossible d'ouvrir le fichier de sortie: %{path}, erreur: %{error}"
+    de: "❌ Ausgabedatei konnte nicht geöffnet werden: %{path}, Fehler: %{error}"
+    it: "❌ Impossibile aprire il file di output: %{path}, errore: %{error}"
 
 output:
   name:
@@ -397,6 +487,15 @@ output:
     fr: statistiques
     de: statistiken
     it: statistiche
+  status:
+    zh: 状态
+    en: Status
+    ja: ステータス
+    ko: 상태
+    es: estado
+    fr: statut
+    de: Status
+    it: stato
   dependencies:
     zh: 依赖
     en: Dependencies

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use std::io::Read;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tracing::instrument;
@@ -34,31 +35,55 @@ impl std::str::FromStr for LinkSource {
     }
 }
 
+/// 输出目标枚举
+pub enum OutputWriter {
+    Stdout(std::io::Stdout),
+    File(std::fs::File),
+}
+
+impl std::io::Write for OutputWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        match self {
+            Self::Stdout(stdout) => stdout.write(buf),
+            Self::File(file) => file.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        match self {
+            Self::Stdout(stdout) => stdout.flush(),
+            Self::File(file) => file.flush(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub input: PathBuf,
-    pub output: PathBuf,
-    pub name: String,
+    pub output: Option<PathBuf>,
     pub format: OutputFormat,
     pub link_source: LinkSource,
     pub github_token: Option<String>,
     pub crates_token: Option<String>,
     pub language: String,
     pub verbose: bool,
+    pub max_concurrent_requests: usize,
+    pub max_retries: u32,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             input: PathBuf::from("Cargo.toml"),
-            output: PathBuf::from("thanks.md"),
-            name: String::from("thanks"),
+            output: None,
             format: OutputFormat::default(),
             link_source: LinkSource::default(),
             github_token: None,
             crates_token: None,
             language: String::from("zh"),
             verbose: false,
+            max_concurrent_requests: 5,
+            max_retries: 3,
         }
     }
 }
@@ -86,15 +111,7 @@ impl Config {
             .cloned()
             .unwrap_or_else(|| PathBuf::from("Cargo.toml"));
 
-        let output = matches
-            .get_one::<PathBuf>("output")
-            .cloned()
-            .unwrap_or_else(|| PathBuf::from("thanks.md"));
-
-        let name = matches
-            .get_one::<String>("name")
-            .cloned()
-            .unwrap_or_else(|| String::from("thanks"));
+        let output = matches.get_one::<PathBuf>("output").cloned();
 
         let format = matches
             .get_one::<String>("format")
@@ -116,16 +133,21 @@ impl Config {
 
         let verbose = matches.get_flag("verbose");
 
+        let max_concurrent_requests = matches.get_one::<usize>("concurrent").copied().unwrap_or(5);
+
+        let max_retries = matches.get_one::<u32>("retries").copied().unwrap_or(3);
+
         Ok(Self {
             input,
             output,
-            name,
             format,
             link_source,
             github_token,
             crates_token,
             language,
             verbose,
+            max_concurrent_requests,
+            max_retries,
         })
     }
 
@@ -145,5 +167,87 @@ impl Config {
             "config.cargo_toml_not_found",
             path = self.input.display()
         ));
+    }
+
+    /// 获取输出位置 (buffer)
+    ///
+    /// - 如果输出位置是文件，则返回文件内容进行追加写入
+    ///     - 如果文件不存在，则创建，然后返回文件内容进行写入
+    /// - 如果输出位置是标准输出，则返回标准输出，进行写入
+    pub fn get_output_writer(&self) -> Result<OutputWriter> {
+        match &self.output {
+            Some(path) if path.as_os_str() == "-" => Ok(OutputWriter::Stdout(std::io::stdout())),
+            Some(path) => {
+                if path.exists() {
+                    // 文件存在，则打开文件进行追加写入
+                    let file = std::fs::OpenOptions::new()
+                        .write(true)
+                        .append(true)
+                        .open(path)
+                        .map_err(|e| {
+                            anyhow::anyhow!(t!(
+                                "config.failed_to_open_output_file",
+                                path = path.display(),
+                                error = e.to_string()
+                            ))
+                        })?;
+                    Ok(OutputWriter::File(file))
+                } else {
+                    // 文件不存在，则创建文件并返回文件内容进行写入
+                    let file = std::fs::OpenOptions::new()
+                        .write(true)
+                        .create(true)
+                        .truncate(true)
+                        .open(path)
+                        .map_err(|e| {
+                            anyhow::anyhow!(t!(
+                                "config.failed_to_open_output_file",
+                                path = path.display(),
+                                error = e.to_string()
+                            ))
+                        })?;
+                    Ok(OutputWriter::File(file))
+                }
+            }
+            None => Ok(OutputWriter::Stdout(std::io::stdout())),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_output_writer_stdout() -> Result<()> {
+        let mut config = Config::default();
+        config.output = Some(PathBuf::from("-"));
+
+        match config.get_output_writer()? {
+            OutputWriter::Stdout(_) => Ok(()),
+            _ => panic!("Expected Stdout writer"),
+        }
+    }
+
+    #[test]
+    fn test_output_writer_file() -> Result<()> {
+        let temp_file = assert_fs::NamedTempFile::new("test-output.md")?;
+        let mut config = Config::default();
+        config.output = Some(temp_file.path().to_path_buf());
+
+        match config.get_output_writer()? {
+            OutputWriter::File(_) => Ok(()),
+            _ => panic!("Expected File writer"),
+        }
+    }
+
+    #[test]
+    fn test_output_writer_default() -> Result<()> {
+        let config = Config::default();
+
+        match config.get_output_writer()? {
+            OutputWriter::Stdout(_) => Ok(()),
+            _ => panic!("Expected default Stdout writer"),
+        }
     }
 }
