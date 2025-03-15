@@ -54,12 +54,18 @@ async fn main() -> Result<()> {
     let config = Config::from_matches(&matches)?;
     Config::init(config)?;
 
-    // Handle completions subcommand
-    handle_completions(&matches)?;
+    // Handle subcommand
+    if let Some(matches) = matches.subcommand_matches("completions") {
+        handle_completions(&matches)?;
+        return Ok(());
+    }
 
     #[cfg(debug_assertions)]
     {
-        handle_test(&matches)?;
+        if let Some(matches) = matches.subcommand_matches("test") {
+            handle_test(&matches)?;
+            return Ok(());
+        }
     }
 
     process_dependencies().await
@@ -102,29 +108,24 @@ pub fn init_log(log_level: Level) -> Result<()> {
 
 #[instrument(skip_all)]
 fn handle_completions(matches: &clap::ArgMatches) -> Result<()> {
-    if let Some(matches) = matches.subcommand_matches("completions") {
-        if let Some(shell) = matches.get_one::<String>("shell") {
-            generate_completions(shell).map_err(|e| {
-                anyhow::anyhow!(t!(
-                    "main.failed_generate_completions",
-                    error = e.to_string()
-                ))
-            })?;
-            return Ok(());
-        }
+    if let Some(shell) = matches.get_one::<String>("shell") {
+        generate_completions(shell).map_err(|e| {
+            anyhow::anyhow!(t!(
+                "main.failed_generate_completions",
+                error = e.to_string()
+            ))
+        })?;
+        return Ok(());
     }
     Ok(())
 }
 
 #[instrument(skip_all)]
 fn handle_test(matches: &clap::ArgMatches) -> Result<()> {
-    if let Some(matches) = matches.subcommand_matches("test") {
-        tracing::info!("test: {:?}", matches);
-        println!("{}", t!("app.description"));
-        println!("test: {:?}", matches);
-        return Ok(());
-    }
-    Ok(())
+    tracing::info!("test: {:?}", matches);
+    println!("{}", t!("app.description"));
+    println!("test: {:?}", matches);
+    return Ok(());
 }
 
 #[instrument(skip_all)]
