@@ -52,7 +52,8 @@ impl Source {
 pub struct CrateInfo {
     pub name: String,
     pub description: Option<String>,
-    pub repository: Option<Url>,
+    // pub repository: Option<Url>,
+    pub repository: Option<String>,
     pub downloads: u32,
 }
 
@@ -158,5 +159,40 @@ mod tests {
         } else {
             panic!("Expected CratesIo source");
         }
+    }
+
+    #[test]
+    fn test_source_from_link_url() {
+        let url = Url::parse("https://example.com/path/to/resource").unwrap();
+        if let Some(Source::Link { url: link_url, .. }) = Source::from_url(&Some(url)) {
+            assert_eq!(link_url, "https://example.com/path/to/resource");
+        } else {
+            panic!("Expected Link source");
+        }
+    }
+
+    #[test]
+    fn test_source_from_other_url() {
+        let url = Url::parse("https://example.com/path/to/resource").unwrap();
+        if let Some(Source::Other { description, .. }) = Source::from_url(&Some(url)) {
+            assert_eq!(description, "https://example.com/path/to/resource");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_cratesio_client_serde() {
+        let client = CratesioClient::new();
+        let crate_info = client.get_crate_info("serde").await.unwrap();
+        println!("{:?}", crate_info);
+        assert_eq!(crate_info.name, "serde");
+        assert!(crate_info.description.is_some());
+        assert!(crate_info.repository.is_some());
+        assert!(
+            crate_info
+                .repository
+                .unwrap()
+                .eq("https://github.com/serde-rs/serde")
+        );
+        assert!(crate_info.downloads > 0);
     }
 }

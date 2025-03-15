@@ -152,8 +152,6 @@ main:
     de: "❌ Das Ausgabeformat %{format} ist noch nicht implementiert"
     it: "❌ Il formato di output %{format} non è ancora implementato"
 
-
-
 cli:
   about:
     zh: 💖 生成你的 Rust 项目依赖的感谢清单
@@ -388,3 +386,12 @@ config:
     fr: "❌ La configuration globale est déjà initialisée"
     de: "❌ Die globale Konfiguration ist bereits initialisiert"
     it: "❌ La configurazione globale è già inizializzata"
+  cargo_toml_not_found:
+    zh: "❌ Cargo.toml 未找到：%{path}"
+    en: "❌ Cargo.toml not found: %{path}"
+    ja: "❌ Cargo.toml が見つかりません：%{path}"
+    ko: "❌ Cargo.toml 을 찾을 수 없습니다: %{path}"
+    es: "❌ Cargo.toml no encontrado: %{path}"
+    fr: "❌ Cargo.toml non trouvé: %{path}"
+    de: "❌ Cargo.toml nicht gefunden: %{path}"
+    it: "❌ Cargo.toml non trovato: %{path}"

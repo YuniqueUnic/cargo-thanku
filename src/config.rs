@@ -64,6 +64,7 @@ impl std::str::FromStr for LinkSource {
             "github" => Self::GitHub,
             "crates-io" => Self::CratesIo,
             "link-empty" => Self::LinkEmpty,
+            "other" => Self::Other,
             _ => return Err(AppError::InvalidLinkSource(s.to_string())),
         })
     }
@@ -162,5 +163,23 @@ impl Config {
             language,
             verbose,
         })
+    }
+
+    pub fn get_cargo_toml_path(&self) -> Result<PathBuf> {
+        if self.input.is_dir() {
+            let path = self.input.join("Cargo.toml");
+            if path.exists() {
+                return Ok(path);
+            }
+        }
+
+        if self.input.is_file() && self.input.extension().unwrap_or_default() == "toml" {
+            return Ok(self.input.clone());
+        }
+
+        anyhow::bail!(t!(
+            "config.cargo_toml_not_found",
+            path = self.input.display()
+        ));
     }
 }
