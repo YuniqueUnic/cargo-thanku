@@ -83,7 +83,7 @@ pub fn build_cli() -> Command {
     let mut cmd = Command::new("thanku") // Use "thanku" as the command name for `cargo thanku`
         .bin_name("cargo-thanku") // This tells cargo how to invoke it
         .aliases(["thx", "thxu"])
-        .subcommand_required(true) // 强制要求子命令模式
+        // .subcommand_required(true) // 强制要求子命令模式
         .arg_required_else_help(true)
         .version(env!("CARGO_PKG_VERSION"))
         .about(format!("{}", t!("cli.about")))
@@ -104,12 +104,6 @@ pub fn build_cli() -> Command {
                 .value_hint(clap::ValueHint::FilePath)
                 .value_parser(clap::value_parser!(PathBuf))
                 .default_value("thanks.md"),
-            Arg::new("name")
-                .short('n')
-                .long("name")
-                .help(format!("{}", t!("cli.name_help")))
-                .global(true)
-                .default_value("thanks"),
             Arg::new("format")
                 .short('f')
                 .long("format")

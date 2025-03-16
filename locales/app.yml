@@ -469,6 +469,15 @@ output:
     fr: nom
     de: name
     it: nome
+  description:
+    zh: 描述
+    en: Description
+    ja: 説明
+    ko: 설명
+    es: descripción
+    fr: description
+    de: Beschreibung
+    it: descrizione
   source:
     zh: 来源
     en: Source

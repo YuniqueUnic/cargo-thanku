@@ -22,7 +22,7 @@ use crate::{
     config::Config,
     errors::AppError,
     output::{DependencyInfo, DependencyStats, OutputManager},
-    sources::{CratesioClient, GitHubClient, Source},
+    sources::{CratesioClient, GitHubClient},
 };
 
 #[macro_use]
@@ -228,6 +228,7 @@ async fn process_dependencies() -> Result<()> {
                 name.clone(),
                 DependencyInfo {
                     name,
+                    description: None,
                     source_type: "Unknown".to_string(),
                     source_url: None,
                     stats: DependencyStats {
@@ -373,6 +374,7 @@ async fn process_dependency(
 
     Ok(DependencyInfo {
         name: name.to_string(),
+        description: crate_info.description,
         source_type,
         source_url,
         stats,
