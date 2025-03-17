@@ -1,6 +1,6 @@
 [package]
 name = "cargo-thanku"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2024"
 authors = ["unic <yuniqueunic@gmail.com>"]
 description = "Generate acknowledgments for your Rust project dependencies"
