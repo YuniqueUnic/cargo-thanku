@@ -98,7 +98,6 @@ cargo thanku completions elvish > ~/.elvish/lib/cargo-thanku.elv
 | `-r, --retries`     | 最大重试次数                                       | `3`             |
 | `--no-relative-libs`| Filter out libraries imported with relative paths  | `false`         |
 
-
 ## 输出格式
 
 ### Markdown 表格
