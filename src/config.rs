@@ -1,5 +1,4 @@
 use anyhow::Result;
-use std::io::Read;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tracing::instrument;
@@ -57,6 +56,7 @@ impl std::io::Write for OutputWriter {
     }
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct Config {
     pub input: PathBuf,
@@ -64,7 +64,8 @@ pub struct Config {
     pub format: OutputFormat,
     pub link_source: LinkSource,
     pub github_token: Option<String>,
-    pub crates_token: Option<String>,
+    // pub crates_token: Option<String>,
+    pub no_relative_libs: bool,
     pub language: String,
     pub verbose: bool,
     pub max_concurrent_requests: usize,
@@ -79,7 +80,8 @@ impl Default for Config {
             format: OutputFormat::default(),
             link_source: LinkSource::default(),
             github_token: None,
-            crates_token: None,
+            // crates_token: None,
+            no_relative_libs: false,
             language: String::from("zh"),
             verbose: false,
             max_concurrent_requests: 5,
@@ -124,7 +126,8 @@ impl Config {
             .unwrap_or_default();
 
         let github_token = matches.get_one::<String>("token").cloned();
-        let crates_token = matches.get_one::<String>("crates-token").cloned();
+        // let crates_token = matches.get_one::<String>("crates-token").cloned();
+        let no_relative_libs = matches.get_flag("no-relative-libs");
 
         let language = matches
             .get_one::<String>("language")
@@ -143,7 +146,8 @@ impl Config {
             format,
             link_source,
             github_token,
-            crates_token,
+            // crates_token,
+            no_relative_libs,
             language,
             verbose,
             max_concurrent_requests,

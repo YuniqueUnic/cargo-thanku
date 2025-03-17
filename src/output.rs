@@ -1,7 +1,7 @@
 use anyhow::Result;
 use rust_i18n::t;
 use serde::Serialize;
-use std::io::{self, Write};
+use std::io::Write;
 
 use crate::{errors::AppError, sources::Source};
 
@@ -42,11 +42,31 @@ impl std::str::FromStr for OutputFormat {
     }
 }
 
+#[derive(Debug, Serialize, Clone, PartialEq)]
+pub enum DependencyKind {
+    Normal,
+    Development,
+    Build,
+    Unknown,
+}
+
+impl From<cargo_metadata::DependencyKind> for DependencyKind {
+    fn from(kind: cargo_metadata::DependencyKind) -> Self {
+        match kind {
+            cargo_metadata::DependencyKind::Normal => Self::Normal,
+            cargo_metadata::DependencyKind::Development => Self::Development,
+            cargo_metadata::DependencyKind::Build => Self::Build,
+            _ => Self::Unknown,
+        }
+    }
+}
+
 /// 表示一个依赖项的信息
 #[derive(Debug, Serialize, Clone)]
 pub struct DependencyInfo {
     pub name: String,
     pub description: Option<String>,
+    pub dependency_kind: DependencyKind,
     pub crate_url: Option<String>,
     pub source_type: String,
     pub source_url: Option<String>,
@@ -86,43 +106,96 @@ impl Formatter for MarkdownTableFormatter {
         output.push_str("|------|--------|--------|-------|--------|\n");
 
         // 内容
-        for dep in deps {
-            let name = match dep.crate_url {
-                Some(ref crate_url) => format!("[{}]({})", dep.name, crate_url),
-                None => dep.name.clone(),
-            };
+        // 1. 先显示 Normal 的依赖
+        let mut show_header = true;
+        let normals = take_sort_dependencies(deps, DependencyKind::Normal);
+        for dep in normals {
+            if show_header {
+                output.push_str("|🔍|Normal| | | |\n");
+                show_header = false;
+            }
+            append_dependency_info_to_markdown_table(&mut output, dep);
+        }
 
-            let description = match dep.description {
-                Some(ref description) => description.replace("\n", " "),
-                None => "unknown".to_string(),
-            };
+        // 2. 再显示 Development 的依赖
+        show_header = true;
+        let developments = take_sort_dependencies(deps, DependencyKind::Development);
+        for dep in developments {
+            if show_header {
+                output.push_str("|🔧|Development| | | |\n");
+                show_header = false;
+            }
+            append_dependency_info_to_markdown_table(&mut output, dep);
+        }
 
-            let stats = match (dep.stats.stars, dep.stats.downloads) {
-                (Some(stars), _) => format!("🌟 {}", stars),
-                (None, Some(downloads)) => format!("📦 {}", downloads),
-                _ => "❓".to_string(),
-            };
+        // 3. 再显示 Build 的依赖
+        show_header = true;
+        let builds = take_sort_dependencies(deps, DependencyKind::Build);
+        for dep in builds {
+            if show_header {
+                output.push_str("|🔨|Build| | | |\n");
+                show_header = false;
+            }
+            append_dependency_info_to_markdown_table(&mut output, dep);
+        }
 
-            let source = if let Some(url) = &dep.source_url {
-                format!("[{}]({})", dep.source_type, url)
-            } else {
-                dep.source_type.clone()
-            };
-
-            let status = if dep.failed {
-                format!("❌ {}", dep.error_message.as_deref().unwrap_or("Failed"))
-            } else {
-                "✅".to_string()
-            };
-
-            output.push_str(&format!(
-                "| {} | {} | {} | {} | {} |\n",
-                name, description, source, stats, status
-            ));
+        // 4. 再显示 Unknown 的依赖
+        show_header = true;
+        let unknowns = take_sort_dependencies(deps, DependencyKind::Unknown);
+        for dep in unknowns {
+            if show_header {
+                output.push_str("|❓|Unknown| | | |\n");
+                show_header = false;
+            }
+            append_dependency_info_to_markdown_table(&mut output, dep);
         }
 
         Ok(output)
     }
+}
+
+fn take_sort_dependencies(deps: &[DependencyInfo], kind: DependencyKind) -> Vec<&DependencyInfo> {
+    let mut filter_sorted_deps = deps
+        .iter()
+        .filter(|dep| dep.dependency_kind == kind)
+        .collect::<Vec<_>>();
+    filter_sorted_deps.sort_by(|a, b| a.name.cmp(&b.name));
+    filter_sorted_deps
+}
+
+fn append_dependency_info_to_markdown_table(output: &mut String, dep: &DependencyInfo) {
+    let name = match dep.crate_url {
+        Some(ref crate_url) => format!("[{}]({})", dep.name, crate_url),
+        None => dep.name.clone(),
+    };
+
+    let description = match dep.description {
+        Some(ref description) => description.replace("\n", " "),
+        None => "unknown".to_string(),
+    };
+
+    let stats = match (dep.stats.stars, dep.stats.downloads) {
+        (Some(stars), _) => format!("🌟 {}", stars),
+        (None, Some(downloads)) => format!("📦 {}", downloads),
+        _ => "❓".to_string(),
+    };
+
+    let source = if let Some(url) = &dep.source_url {
+        format!("[{}]({})", dep.source_type, url)
+    } else {
+        dep.source_type.clone()
+    };
+
+    let status = if dep.failed {
+        format!("❌ {}", dep.error_message.as_deref().unwrap_or("Failed"))
+    } else {
+        "✅".to_string()
+    };
+
+    output.push_str(&format!(
+        "| {} | {} | {} | {} | {} |\n",
+        name, description, source, stats, status
+    ));
 }
 
 /// Markdown 列表格式化器
@@ -133,43 +206,87 @@ impl Formatter for MarkdownListFormatter {
         let mut output = String::new();
         output.push_str(&format!("# {}\n\n", t!("output.dependencies")));
 
-        for dep in deps {
-            let name = match dep.crate_url {
-                Some(ref crate_url) => format!("[{}]({})", dep.name, crate_url),
-                None => dep.name.clone(),
-            };
-
-            let description = match dep.description {
-                Some(ref description) => description.replace("\n", " "), // 将 description 多行变为一行
-                None => "unknown".to_string(),
-            };
-
-            let stats = match (dep.stats.stars, dep.stats.downloads) {
-                (Some(stars), _) => format!("🌟 {}", stars),
-                (None, Some(downloads)) => format!("📦 {}", downloads),
-                _ => "❓".to_string(),
-            };
-
-            let status = if dep.failed {
-                format!("❌ {}", dep.error_message.as_deref().unwrap_or("Failed"))
-            } else {
-                "✅".to_string()
-            };
-
-            if let Some(url) = &dep.source_url {
-                output.push_str(&format!(
-                    "- {} [{}]({}) ({}) {}\n",
-                    name, description, url, stats, status
-                ));
-            } else {
-                output.push_str(&format!(
-                    "- {} [{}] ({}) {}\n",
-                    name, description, stats, status
-                ));
+        // 1. 先显示 Normal 的依赖
+        let mut show_header = true;
+        let normals = take_sort_dependencies(deps, DependencyKind::Normal);
+        for dep in normals {
+            if show_header {
+                output.push_str(&format!("\n## {}\n", t!("output.normal")));
+                show_header = false;
             }
+            append_dependency_info_to_markdown_list(&mut output, dep);
+        }
+
+        // 2. 再显示 Development 的依赖
+        show_header = true;
+        let developments = take_sort_dependencies(deps, DependencyKind::Development);
+        for dep in developments {
+            if show_header {
+                output.push_str(&format!("\n## {}\n", t!("output.development")));
+                show_header = false;
+            }
+            append_dependency_info_to_markdown_list(&mut output, dep);
+        }
+
+        // 3. 再显示 Build 的依赖
+        show_header = true;
+        let builds = take_sort_dependencies(deps, DependencyKind::Build);
+        for dep in builds {
+            if show_header {
+                output.push_str(&format!("\n## {}\n", t!("output.build")));
+                show_header = false;
+            }
+            append_dependency_info_to_markdown_list(&mut output, dep);
+        }
+
+        // 4. 再显示 Unknown 的依赖
+        show_header = true;
+        let unknowns = take_sort_dependencies(deps, DependencyKind::Unknown);
+        for dep in unknowns {
+            if show_header {
+                output.push_str(&format!("\n## {}\n", t!("output.unknown")));
+                show_header = false;
+            }
+            append_dependency_info_to_markdown_list(&mut output, dep);
         }
 
         Ok(output)
+    }
+}
+
+fn append_dependency_info_to_markdown_list(output: &mut String, dep: &DependencyInfo) {
+    let name = match dep.crate_url {
+        Some(ref crate_url) => format!("[{}]({})", dep.name, crate_url),
+        None => dep.name.clone(),
+    };
+
+    let description = match dep.description {
+        Some(ref description) => description.replace("\n", " "), // 将 description 多行变为一行
+        None => "unknown".to_string(),
+    };
+
+    let stats = match (dep.stats.stars, dep.stats.downloads) {
+        (Some(stars), _) => format!("🌟 {}", stars),
+        (None, Some(downloads)) => format!("📦 {}", downloads),
+        _ => "❓".to_string(),
+    };
+
+    let status = if dep.failed {
+        format!("❌ {}", dep.error_message.as_deref().unwrap_or("Failed"))
+    } else {
+        "✅".to_string()
+    };
+
+    if let Some(url) = &dep.source_url {
+        output.push_str(&format!(
+            "- {} [{}]({}) ({}) {}\n",
+            name, description, url, stats, status
+        ));
+    } else {
+        output.push_str(&format!(
+            "- {} [{}] ({}) {}\n",
+            name, description, stats, status
+        ));
     }
 }
 
@@ -242,6 +359,7 @@ impl From<(&str, &Source)> for DependencyInfo {
                 },
                 failed: false,
                 error_message: None,
+                dependency_kind: DependencyKind::Normal,
             },
             Source::CratesIo { downloads, .. } => Self {
                 name: name.to_string(),
@@ -255,6 +373,7 @@ impl From<(&str, &Source)> for DependencyInfo {
                 },
                 failed: false,
                 error_message: None,
+                dependency_kind: DependencyKind::Normal,
             },
             Source::Link { url } => Self {
                 name: name.to_string(),
@@ -268,6 +387,7 @@ impl From<(&str, &Source)> for DependencyInfo {
                 },
                 failed: false,
                 error_message: None,
+                dependency_kind: DependencyKind::Normal,
             },
             Source::Other { description } => Self {
                 name: name.to_string(),
@@ -281,6 +401,7 @@ impl From<(&str, &Source)> for DependencyInfo {
                 },
                 failed: false,
                 error_message: None,
+                dependency_kind: DependencyKind::Normal,
             },
         }
     }
@@ -309,12 +430,13 @@ mod tests {
             },
             failed: false,
             error_message: None,
+            dependency_kind: DependencyKind::Normal,
         }];
 
         let formatter = MarkdownTableFormatter;
         let result = formatter.format(&deps).unwrap();
         println!("{}", result);
-        assert!(result.contains("| serde |"));
+        assert!(result.contains("| [serde](https://crates.io/crates/serde) |"));
         assert!(result.contains(" 🌟 1000"));
     }
 
@@ -335,6 +457,7 @@ mod tests {
             },
             failed: false,
             error_message: None,
+            dependency_kind: DependencyKind::Unknown,
         }];
 
         let mut buffer = Vec::new();
@@ -342,8 +465,9 @@ mod tests {
         manager.write(&deps).unwrap();
 
         let output = String::from_utf8(buffer).unwrap();
-        assert!(output.contains("| serde |"));
+        assert!(output.contains("| [serde](https://crates.io/crates/serde) |"));
         assert!(output.contains("🌟 1000"));
+        assert!(output.contains("Unknown"));
     }
 
     #[test]
@@ -363,6 +487,7 @@ mod tests {
             },
             failed: false,
             error_message: None,
+            dependency_kind: DependencyKind::Development,
         }];
 
         let temp_dir = assert_fs::TempDir::new()?;
@@ -373,8 +498,9 @@ mod tests {
         manager.write(&deps)?;
 
         let content = std::fs::read_to_string(&file_path)?;
-        assert!(content.contains("| serde |"));
+        assert!(content.contains("| [serde](https://crates.io/crates/serde) |"));
         assert!(content.contains("🌟 1000"));
+        assert!(content.contains("Development"));
 
         Ok(())
     }
@@ -396,6 +522,7 @@ mod tests {
             },
             failed: false,
             error_message: None,
+            dependency_kind: DependencyKind::Normal,
         }];
 
         let config = Config::default();
@@ -424,6 +551,7 @@ mod tests {
             },
             failed: true,
             error_message: Some("Failed to fetch repository info".to_string()),
+            dependency_kind: DependencyKind::Normal,
         }];
 
         let config = Config::default();
@@ -452,6 +580,7 @@ mod tests {
             },
             failed: false,
             error_message: None,
+            dependency_kind: DependencyKind::Normal,
         }];
 
         let temp_dir = assert_fs::TempDir::new()?;
@@ -465,8 +594,9 @@ mod tests {
         manager.write(&deps)?;
 
         let content = std::fs::read_to_string(&file_path)?;
-        assert!(content.contains("| serde |"));
+        assert!(content.contains("| [serde](https://crates.io/crates/serde) |"));
         assert!(content.contains("🌟 1000"));
+        assert!(content.contains("Normal"));
 
         Ok(())
     }

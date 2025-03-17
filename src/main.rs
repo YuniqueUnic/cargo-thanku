@@ -6,7 +6,7 @@ mod sources;
 
 use anyhow::Result;
 use cargo_metadata::MetadataCommand;
-use output::OutputFormat;
+use output::{DependencyKind, OutputFormat};
 use rust_i18n::t;
 use tracing::{Level, debug, info, instrument};
 use url::Url;
@@ -158,8 +158,13 @@ async fn process_dependencies() -> Result<()> {
     let config = Config::global()?;
 
     // Get cargo metadata
-    let deps = get_dependencies(&config.get_cargo_toml_path()?)?;
+    let mut deps = get_dependencies(&config.get_cargo_toml_path()?)?;
     debug!("{}", t!("main.found_dependencies", count = deps.len()));
+
+    if config.no_relative_libs {
+        debug!("{}", t!("main.filtering_relative_libs"));
+        deps.retain(|_, dep| dep.path.is_none());
+    }
 
     // Initialize clients
     let crates_io_client = Arc::new(CratesioClient::new());
@@ -174,8 +179,9 @@ async fn process_dependencies() -> Result<()> {
     // Create tasks
     let mut tasks: Vec<tokio::task::JoinHandle<Result<(String, DependencyInfo), AppError>>> =
         Vec::new();
-    for (name, _) in deps {
+    for (name, dep) in deps {
         let name = name.clone();
+        let dep_kind = dep.kind;
         let crates_io_client = Arc::clone(&crates_io_client);
         let github_client = github_client.as_ref().map(Arc::clone);
         let semaphore = Arc::clone(&semaphore);
@@ -186,7 +192,14 @@ async fn process_dependencies() -> Result<()> {
             let mut last_error = None;
 
             for retry in 0..=max_retries {
-                match process_dependency(&name, &crates_io_client, github_client.as_deref()).await {
+                match process_dependency(
+                    &name,
+                    dep_kind.into(),
+                    &crates_io_client,
+                    github_client.as_deref(),
+                )
+                .await
+                {
                     Ok(info) => {
                         if retry > 0 {
                             debug!(
@@ -228,6 +241,7 @@ async fn process_dependencies() -> Result<()> {
                 name.clone(),
                 DependencyInfo {
                     name: name.clone(),
+                    dependency_kind: dep_kind.into(),
                     description: None,
                     crate_url: Some(CratesioClient::get_crate_url(&name)),
                     source_type: "Unknown".to_string(),
@@ -272,6 +286,7 @@ async fn process_dependencies() -> Result<()> {
 #[instrument(skip(crates_io_client, github_client))]
 async fn process_dependency(
     name: &str,
+    dep_kind: DependencyKind,
     crates_io_client: &CratesioClient,
     github_client: Option<&GitHubClient>,
 ) -> Result<DependencyInfo> {
@@ -375,6 +390,7 @@ async fn process_dependency(
 
     Ok(DependencyInfo {
         name: name.to_string(),
+        dependency_kind: dep_kind,
         description: crate_info.description,
         crate_url: Some(CratesioClient::get_crate_url(name)),
         source_type,

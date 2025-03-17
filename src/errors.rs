@@ -8,9 +8,6 @@ pub enum AppError {
     #[error("Cargo metadata error: {0}")]
     MetadataError(#[from] cargo_metadata::Error),
 
-    #[error("Configuration error: {0}")]
-    ConfigError(String),
-
     #[error("I/O error: {0}")]
     IoError(#[from] std::io::Error),
 

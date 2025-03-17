@@ -5,6 +5,7 @@ use std::time::Duration;
 use tracing::instrument;
 use url::Url;
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub enum Source {
     GitHub {
@@ -24,6 +25,7 @@ pub enum Source {
     },
 }
 
+#[allow(unused)]
 impl Source {
     pub fn from_url(url: &Option<Url>) -> Option<Self> {
         url.as_ref().and_then(|u| match u.host_str()? {
@@ -48,6 +50,7 @@ impl Source {
     }
 }
 
+#[allow(unused)]
 #[derive(Debug, Deserialize)]
 pub struct CrateInfo {
     pub name: String,
@@ -132,6 +135,7 @@ impl GitHubClient {
     }
 }
 
+#[allow(unused)]
 #[derive(Debug, Deserialize)]
 pub struct RepositoryInfo {
     pub full_name: String,

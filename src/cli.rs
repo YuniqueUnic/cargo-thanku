@@ -23,6 +23,7 @@ use tracing::instrument;
 //     .default_value("zh"),
 
 /// 定义语言解析器
+#[allow(unused)]
 #[derive(Clone, Debug)]
 struct LanguageParser;
 
@@ -125,13 +126,11 @@ pub fn build_cli() -> Command {
                 .env("GITHUB_TOKEN")
                 .help(format!("{}", t!("cli.token_help")))
                 .action(ArgAction::Set),
-            Arg::new("crates-token")
-                .short('c')
-                .long("crates-token")
+            Arg::new("no-relative-libs")
+                .long("no-relative-libs")
                 .global(true)
-                .env("CRATES_TOKEN")
-                .help(format!("{}", t!("cli.crates_token_help")))
-                .action(ArgAction::Set),
+                .help(format!("{}", t!("cli.no_relative_libs_help")))
+                .action(ArgAction::SetTrue),
             Arg::new("language")
                 .short('l')
                 .long("language")

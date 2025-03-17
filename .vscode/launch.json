@@ -1,0 +1,51 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'cargo-thanku'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=cargo-thanku",
+                    "--package=cargo-thanku"
+                ],
+                "filter": {
+                    "name": "cargo-thanku",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "thanku",
+                "-o",
+                "./test.md",
+                "-v",
+                "--input=./cargo.toml"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'cargo-thanku'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=cargo-thanku",
+                    "--package=cargo-thanku"
+                ],
+                "filter": {
+                    "name": "cargo-thanku",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

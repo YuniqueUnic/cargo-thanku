@@ -79,6 +79,15 @@ main:
     fr: "❌ Erreur lors du traitement de la dépendance %{name}: %{error}"
     de: "❌ Fehler beim Verarbeiten der Abhängigkeit %{name}: %{error}"
     it: "❌ Errore nel processare la dipendenza %{name}: %{error}"
+  filtering_relative_libs:
+    zh: "🍃 过滤掉相对路径导入的库"
+    en: "🍃 Filter out libraries imported with relative paths"
+    ja: "🍃 相対パスでインポートされたライブラリをフィルタリング"
+    ko: "🍃 상대 경로로 가져온 라이브러리를 필터링"
+    es: "🍃 Filtrar bibliotecas importadas con rutas relativas"
+    fr: "🍃 Filtrer les bibliothèques importées avec des chemins relatifs"
+    de: "🍃 Bibliotheken importieren mit relativen Pfaden filtern"
+    it: "🍃 Non generare librerie relative"
   task_failed:
     zh: "❌ 任务失败：%{error}"
     en: "❌ Task failed: %{error}"
@@ -324,6 +333,15 @@ cli:
     fr: Token d'authentification crates.io (nécessaire pour les opérations crates.io)
     de: crates.io-Authentifizierungstoken (erforderlich für crates.io-Operationen)
     it: Token di autenticazione crates.io (necessario per le operazioni crates.io)
+  no_relative_libs_help:
+    zh: 过滤掉相对路径导入的库
+    en: Filter out libraries imported with relative paths
+    ja: 相対パスでインポートされたライブラリをフィルタリング
+    ko: 상대 경로로 가져온 라이브러리를 필터링
+    es: Filtrar bibliotecas importadas con rutas relativas
+    fr: Filtrer les bibliothèques importées avec des chemins relatifs
+    de: Bibliotheken importieren mit relativen Pfaden filtern
+    it: Non generare librerie relative
   language:
     zh: 语言
     en: Language
@@ -514,3 +532,39 @@ output:
     fr: dépendances
     de: Abhängigkeiten
     it: dipendenze
+  normal:
+    zh: 普通
+    en: Normal
+    ja: 普通
+    ko: 일반
+    es: normal
+    fr: normal
+    de: normal
+    it: normale
+  development:
+    zh: 开发
+    en: Development
+    ja: 開発
+    ko: 개발
+    es: desarrollo
+    fr: développement
+    de: Entwicklung
+    it: sviluppo
+  build:
+    zh: 构建
+    en: Build
+    ja: ビルド
+    ko: 빌드
+    es: construcción
+    fr: construction
+    de: Bau
+    it: costruzione
+  unknown:
+    zh: 未知
+    en: Unknown
+    ja: 未知
+    ko: 알 수 없음
+    es: desconocido
+    fr: inconnu
+    de: unbekannt
+    it: sconosciuto
