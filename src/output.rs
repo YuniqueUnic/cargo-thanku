@@ -47,6 +47,7 @@ impl std::str::FromStr for OutputFormat {
 pub struct DependencyInfo {
     pub name: String,
     pub description: Option<String>,
+    pub crate_url: Option<String>,
     pub source_type: String,
     pub source_url: Option<String>,
     pub stats: DependencyStats,
@@ -86,6 +87,11 @@ impl Formatter for MarkdownTableFormatter {
 
         // 内容
         for dep in deps {
+            let name = match dep.crate_url {
+                Some(ref crate_url) => format!("[{}]({})", dep.name, crate_url),
+                None => dep.name.clone(),
+            };
+
             let description = match dep.description {
                 Some(ref description) => description.replace("\n", " "),
                 None => "unknown".to_string(),
@@ -111,7 +117,7 @@ impl Formatter for MarkdownTableFormatter {
 
             output.push_str(&format!(
                 "| {} | {} | {} | {} | {} |\n",
-                dep.name, description, source, stats, status
+                name, description, source, stats, status
             ));
         }
 
@@ -128,6 +134,11 @@ impl Formatter for MarkdownListFormatter {
         output.push_str(&format!("# {}\n\n", t!("output.dependencies")));
 
         for dep in deps {
+            let name = match dep.crate_url {
+                Some(ref crate_url) => format!("[{}]({})", dep.name, crate_url),
+                None => dep.name.clone(),
+            };
+
             let description = match dep.description {
                 Some(ref description) => description.replace("\n", " "), // 将 description 多行变为一行
                 None => "unknown".to_string(),
@@ -148,12 +159,12 @@ impl Formatter for MarkdownListFormatter {
             if let Some(url) = &dep.source_url {
                 output.push_str(&format!(
                     "- {} [{}]({}) ({}) {}\n",
-                    dep.name, description, url, stats, status
+                    name, description, url, stats, status
                 ));
             } else {
                 output.push_str(&format!(
                     "- {} [{}] ({}) {}\n",
-                    dep.name, description, stats, status
+                    name, description, stats, status
                 ));
             }
         }
@@ -222,6 +233,7 @@ impl From<(&str, &Source)> for DependencyInfo {
             Source::GitHub { owner, repo, stars } => Self {
                 name: name.to_string(),
                 description: None,
+                crate_url: Some(format!("https://crates.io/crates/{}", name)),
                 source_type: "GitHub".to_string(),
                 source_url: Some(format!("https://github.com/{}/{}", owner, repo)),
                 stats: DependencyStats {
@@ -234,8 +246,9 @@ impl From<(&str, &Source)> for DependencyInfo {
             Source::CratesIo { downloads, .. } => Self {
                 name: name.to_string(),
                 description: None,
+                crate_url: Some(format!("https://crates.io/crates/{}", name)),
                 source_type: "crates.io".to_string(),
-                source_url: Some(format!("https://crates.io/crates/{}", name)),
+                source_url: None,
                 stats: DependencyStats {
                     stars: None,
                     downloads: *downloads,
@@ -246,6 +259,7 @@ impl From<(&str, &Source)> for DependencyInfo {
             Source::Link { url } => Self {
                 name: name.to_string(),
                 description: None,
+                crate_url: Some(format!("https://crates.io/crates/{}", name)),
                 source_type: "Source".to_string(),
                 source_url: Some(url.clone()),
                 stats: DependencyStats {
@@ -258,6 +272,7 @@ impl From<(&str, &Source)> for DependencyInfo {
             Source::Other { description } => Self {
                 name: name.to_string(),
                 description: Some(description.clone()),
+                crate_url: Some(format!("https://crates.io/crates/{}", name)),
                 source_type: description.clone(),
                 source_url: None,
                 stats: DependencyStats {
@@ -285,6 +300,7 @@ mod tests {
                 "A data interchange format with a strong focus on simplicity and usability."
                     .to_string(),
             ),
+            crate_url: Some("https://crates.io/crates/serde".to_string()),
             source_type: "GitHub".to_string(),
             source_url: Some("https://github.com/serde-rs/serde".to_string()),
             stats: DependencyStats {
@@ -310,6 +326,7 @@ mod tests {
                 "A data interchange format with a strong focus on simplicity and usability."
                     .to_string(),
             ),
+            crate_url: Some("https://crates.io/crates/serde".to_string()),
             source_type: "GitHub".to_string(),
             source_url: Some("https://github.com/serde-rs/serde".to_string()),
             stats: DependencyStats {
@@ -337,6 +354,7 @@ mod tests {
                 "A data interchange format with a strong focus on simplicity and usability."
                     .to_string(),
             ),
+            crate_url: Some("https://crates.io/crates/serde".to_string()),
             source_type: "GitHub".to_string(),
             source_url: Some("https://github.com/serde-rs/serde".to_string()),
             stats: DependencyStats {
@@ -369,6 +387,7 @@ mod tests {
                 "A data interchange format with a strong focus on simplicity and usability."
                     .to_string(),
             ),
+            crate_url: Some("https://crates.io/crates/serde".to_string()),
             source_type: "GitHub".to_string(),
             source_url: Some("https://github.com/serde-rs/serde".to_string()),
             stats: DependencyStats {
@@ -396,6 +415,7 @@ mod tests {
                 "A data interchange format with a strong focus on simplicity and usability."
                     .to_string(),
             ),
+            crate_url: Some("https://crates.io/crates/serde".to_string()),
             source_type: "GitHub".to_string(),
             source_url: Some("https://github.com/serde-rs/serde".to_string()),
             stats: DependencyStats {
@@ -423,6 +443,7 @@ mod tests {
                 "A data interchange format with a strong focus on simplicity and usability."
                     .to_string(),
             ),
+            crate_url: Some("https://crates.io/crates/serde".to_string()),
             source_type: "GitHub".to_string(),
             source_url: Some("https://github.com/serde-rs/serde".to_string()),
             stats: DependencyStats {

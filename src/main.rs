@@ -227,8 +227,9 @@ async fn process_dependencies() -> Result<()> {
             Ok((
                 name.clone(),
                 DependencyInfo {
-                    name,
+                    name: name.clone(),
                     description: None,
+                    crate_url: Some(CratesioClient::get_crate_url(&name)),
                     source_type: "Unknown".to_string(),
                     source_url: None,
                     stats: DependencyStats {
@@ -375,6 +376,7 @@ async fn process_dependency(
     Ok(DependencyInfo {
         name: name.to_string(),
         description: crate_info.description,
+        crate_url: Some(CratesioClient::get_crate_url(name)),
         source_type,
         source_url,
         stats,

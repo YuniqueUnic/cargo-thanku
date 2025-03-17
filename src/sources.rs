@@ -76,6 +76,10 @@ impl CratesioClient {
         }
     }
 
+    pub fn get_crate_url(name: &str) -> String {
+        format!("https://crates.io/crates/{}", name)
+    }
+
     #[instrument(skip(self))]
     pub async fn get_crate_info(&self, name: &str) -> Result<CrateInfo> {
         let url = format!("https://crates.io/api/v1/crates/{}", name);
