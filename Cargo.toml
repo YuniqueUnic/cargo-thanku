@@ -9,18 +9,7 @@ categories = [
     "command-line-utilities",
     "development-tools::cargo-plugins",
 ]
-keywords = [
-    "cargo",
-    "cli",
-    "thank",
-    "thanks",
-    "acknowledgement",
-    "acknowledgements",
-    "dependency",
-    "dependencies",
-    "thanku",
-    "thankyou",
-]
+keywords = ["cargo", "cli", "thanks", "acknowledgements", "dependencies"]
 license = "MIT"
 repository = "https://github.com/yuniqueunic/cargo-thanku"
 readme = "README.md"
