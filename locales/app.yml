@@ -23,7 +23,7 @@ app:
     fr: cargo-merci
     de: cargo-danke
     it: cargo-grazie
-  thanku: 
+  thanku:
     zh: 感谢你的依赖
     en: Thank you for your dependencies
     ja: ありがとうございます
@@ -32,7 +32,7 @@ app:
     fr: merci
     de: danke
     it: grazie
-  description: 
+  description:
     zh: 💖 生成你的 Rust 项目依赖的感谢清单
     en: 💖 Generate acknowledgments for your Rust project dependencies
     ja: 💖 ありがとうございます
@@ -396,6 +396,15 @@ cli:
     fr: Nombre de tentatives
     de: Anzahl der Wiederholungen
     it: Numero di tentativi
+  thanku_about:
+    zh: 💖 在 Rust 项目根目录使用 `cargo thanku` 或 `cargo-thanku` 生成依赖项致谢列表。
+    en: 💖 Use `cargo thanku` or `cargo-thanku` in your Rust project root to generate dependency acknowledgments.
+    ja: 💖 Rust プロジェクトのルートで `cargo thanku` または `cargo-thanku` を使用して、依存関係の謝辞を生成します。
+    ko: 💖 Rust 프로젝트 루트에서 `cargo thanku` 또는 `cargo-thanku`를 사용하여 종속성 감사를 생성합니다.
+    es: 💖 Usa `cargo thanku` o `cargo-thanku` en la raíz de tu proyecto Rust para generar agradecimientos de dependencias.
+    fr: 💖 Utilisez `cargo thanku` ou `cargo-thanku` à la racine de votre projet Rust pour générer les remerciements des dépendances.
+    de: 💖 Verwenden Sie `cargo thanku` oder `cargo-thanku` im Stammverzeichnis Ihres Rust-Projekts, um Abhängigkeitsdanksagungen zu generieren.
+    it: 💖 Usa `cargo thanku` o `cargo-thanku` nella root del tuo progetto Rust per generare i ringraziamenti delle dipendenze.
   completions_about:
     zh: 生成 shell 补全
     en: Generate shell completions
@@ -496,7 +505,16 @@ output:
     fr: description
     de: Beschreibung
     it: descrizione
-  source:
+  crates_link:
+    zh: Crates.io
+    en: Crates.io
+    ja: Crates.io
+    ko: Crates.io
+    es: Crates.io
+    fr: Crates.io
+    de: Crates.io
+    it: Crates.io
+  source_link:
     zh: 来源
     en: Source
     ja: ソース

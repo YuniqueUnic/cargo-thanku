@@ -96,14 +96,15 @@ impl Formatter for MarkdownTableFormatter {
 
         // 表头
         output.push_str(&format!(
-            "| {} | {} | {} | {} | {} |\n",
+            "\n| {} | {} | {} | {} | {} | {} |\n",
             t!("output.name"),
             t!("output.description"),
-            t!("output.source"),
+            t!("output.crates_link"),
+            t!("output.source_link"),
             t!("output.stats"),
             t!("output.status")
         ));
-        output.push_str("|------|--------|--------|-------|--------|\n");
+        output.push_str("|------|--------|--------|-------|-------|--------|\n");
 
         // 内容
         // 1. 先显示 Normal 的依赖
@@ -111,7 +112,7 @@ impl Formatter for MarkdownTableFormatter {
         let normals = take_sort_dependencies(deps, DependencyKind::Normal);
         for dep in normals {
             if show_header {
-                output.push_str("|🔍|Normal| | | |\n");
+                output.push_str("|🔍|Normal| | | | |\n");
                 show_header = false;
             }
             append_dependency_info_to_markdown_table(&mut output, dep);
@@ -122,7 +123,7 @@ impl Formatter for MarkdownTableFormatter {
         let developments = take_sort_dependencies(deps, DependencyKind::Development);
         for dep in developments {
             if show_header {
-                output.push_str("|🔧|Development| | | |\n");
+                output.push_str("|🔧|Development| | | | |\n");
                 show_header = false;
             }
             append_dependency_info_to_markdown_table(&mut output, dep);
@@ -133,7 +134,7 @@ impl Formatter for MarkdownTableFormatter {
         let builds = take_sort_dependencies(deps, DependencyKind::Build);
         for dep in builds {
             if show_header {
-                output.push_str("|🔨|Build| | | |\n");
+                output.push_str("|🔨|Build| | | | |\n");
                 show_header = false;
             }
             append_dependency_info_to_markdown_table(&mut output, dep);
@@ -144,7 +145,7 @@ impl Formatter for MarkdownTableFormatter {
         let unknowns = take_sort_dependencies(deps, DependencyKind::Unknown);
         for dep in unknowns {
             if show_header {
-                output.push_str("|❓|Unknown| | | |\n");
+                output.push_str("|❓|Unknown| | | | |\n");
                 show_header = false;
             }
             append_dependency_info_to_markdown_table(&mut output, dep);
@@ -164,11 +165,6 @@ fn take_sort_dependencies(deps: &[DependencyInfo], kind: DependencyKind) -> Vec<
 }
 
 fn append_dependency_info_to_markdown_table(output: &mut String, dep: &DependencyInfo) {
-    let name = match dep.crate_url {
-        Some(ref crate_url) => format!("[{}]({})", dep.name, crate_url),
-        None => dep.name.clone(),
-    };
-
     let description = match dep.description {
         Some(ref description) => description.replace("\n", " "),
         None => "unknown".to_string(),
@@ -180,7 +176,13 @@ fn append_dependency_info_to_markdown_table(output: &mut String, dep: &Dependenc
         _ => "❓".to_string(),
     };
 
-    let source = if let Some(url) = &dep.source_url {
+    let crates_link = if let Some(url) = &dep.crate_url {
+        format!("[{}]({})", dep.name, url)
+    } else {
+        dep.name.clone()
+    };
+
+    let source_link = if let Some(url) = &dep.source_url {
         format!("[{}]({})", dep.source_type, url)
     } else {
         dep.source_type.clone()
@@ -193,8 +195,8 @@ fn append_dependency_info_to_markdown_table(output: &mut String, dep: &Dependenc
     };
 
     output.push_str(&format!(
-        "| {} | {} | {} | {} | {} |\n",
-        name, description, source, stats, status
+        "| {} | {} | {} | {} | {} | {} |\n",
+        dep.name, description, crates_link, source_link, stats, status
     ));
 }
 
@@ -255,11 +257,6 @@ impl Formatter for MarkdownListFormatter {
 }
 
 fn append_dependency_info_to_markdown_list(output: &mut String, dep: &DependencyInfo) {
-    let name = match dep.crate_url {
-        Some(ref crate_url) => format!("[{}]({})", dep.name, crate_url),
-        None => dep.name.clone(),
-    };
-
     let description = match dep.description {
         Some(ref description) => description.replace("\n", " "), // 将 description 多行变为一行
         None => "unknown".to_string(),
@@ -277,17 +274,22 @@ fn append_dependency_info_to_markdown_list(output: &mut String, dep: &Dependency
         "✅".to_string()
     };
 
-    if let Some(url) = &dep.source_url {
-        output.push_str(&format!(
-            "- {} [{}]({}) ({}) {}\n",
-            name, description, url, stats, status
-        ));
+    let crates_link = if let Some(url) = &dep.crate_url {
+        format!("[{}]({})", dep.name, url)
     } else {
-        output.push_str(&format!(
-            "- {} [{}] ({}) {}\n",
-            name, description, stats, status
-        ));
-    }
+        dep.name.clone()
+    };
+
+    let source_link = if let Some(url) = &dep.source_url {
+        format!("[{}]({})", dep.source_type, url)
+    } else {
+        dep.source_type.clone()
+    };
+
+    output.push_str(&format!(
+        "- {} : {} - {} {} ({}) {}\n",
+        dep.name, description, crates_link, source_link, stats, status
+    ));
 }
 
 /// JSON 格式化器

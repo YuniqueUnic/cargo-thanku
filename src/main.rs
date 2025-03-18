@@ -36,7 +36,8 @@ rust_i18n::i18n!(
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = build_cli();
-    let matches = cli.get_matches_from(filter_cargo_args());
+    // let matches = cli.get_matches_from(filter_cargo_args());
+    let matches = cli.get_matches();
 
     let language = matches
         .get_one::<String>("language")
@@ -71,16 +72,16 @@ async fn main() -> Result<()> {
     process_dependencies().await
 }
 
-#[instrument]
-fn filter_cargo_args() -> impl Iterator<Item = String> {
-    std::env::args().enumerate().filter_map(|(i, arg)| {
-        match (i, arg.as_str()) {
-            // 过滤掉 cargo 传递的子命令名（如 "thanku"、"thx"）
-            (1, "thanku" | "thx" | "thxu") => None,
-            _ => Some(arg),
-        }
-    })
-}
+// #[instrument]
+// fn filter_cargo_args() -> impl Iterator<Item = String> {
+//     std::env::args().enumerate().filter_map(|(i, arg)| {
+//         match (i, arg.as_str()) {
+//             // 过滤掉 cargo 传递的子命令名（如 "thanku"、"thx"）
+//             (1, "thanku" | "thx" | "thxu") => None,
+//             _ => Some(arg),
+//         }
+//     })
+// }
 
 #[instrument]
 pub fn init_log(log_level: Level) -> Result<()> {

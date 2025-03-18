@@ -81,11 +81,9 @@ impl clap::builder::TypedValueParser for LanguageParser {
 
 #[instrument(skip_all)]
 pub fn build_cli() -> Command {
-    let mut cmd = Command::new("thanku") // Use "thanku" as the command name for `cargo thanku`
+    let mut cmd = Command::new("cargo-thanku") // Use "cargo-thanku" as the command name for `cargo thanku`
         .bin_name("cargo-thanku") // This tells cargo how to invoke it
         .aliases(["thx", "thxu"])
-        // .subcommand_required(true) // 强制要求子命令模式
-        .arg_required_else_help(true)
         .version(env!("CARGO_PKG_VERSION"))
         .about(format!("{}", t!("cli.about")))
         .args([
@@ -163,7 +161,11 @@ pub fn build_cli() -> Command {
                 .value_parser(clap::value_parser!(u32))
                 .default_value("3"),
         ])
-        .subcommand(
+        .subcommands([
+            Command::new("thanku")
+                .aliases(["thx", "thxu"])
+                .about(format!("{}", t!("cli.thanku_about")))
+                .hide(true),
             Command::new("completions")
                 .about(format!("{}", t!("cli.completions_about")))
                 .arg(
@@ -172,7 +174,7 @@ pub fn build_cli() -> Command {
                         .required(true)
                         .value_parser(["bash", "fish", "zsh", "powershell", "elvish"]),
                 ),
-        );
+        ]);
 
     #[cfg(debug_assertions)]
     {
