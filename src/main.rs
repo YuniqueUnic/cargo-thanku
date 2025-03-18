@@ -3,6 +3,7 @@ mod config;
 mod errors;
 mod output;
 mod sources;
+mod travert;
 
 use anyhow::Result;
 use cargo_metadata::MetadataCommand;

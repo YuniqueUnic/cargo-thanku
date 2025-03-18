@@ -6,10 +6,11 @@ use std::io::Write;
 use crate::{errors::AppError, sources::Source};
 
 /// 定义输出格式
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutputFormat {
     MarkdownTable,
     MarkdownList,
+    Csv,
     Json,
     Toml,
     Yaml,
@@ -31,9 +32,10 @@ impl std::str::FromStr for OutputFormat {
     type Err = AppError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
+        Ok(match s.to_lowercase().as_str() {
             "markdown-table" => Self::MarkdownTable,
             "markdown-list" => Self::MarkdownList,
+            "csv" => Self::Csv,
             "json" => Self::Json,
             "toml" => Self::Toml,
             "yaml" => Self::Yaml,
@@ -42,12 +44,19 @@ impl std::str::FromStr for OutputFormat {
     }
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Clone, PartialEq, Default)]
 pub enum DependencyKind {
+    #[default]
     Normal,
     Development,
     Build,
     Unknown,
+}
+
+impl std::fmt::Display for DependencyKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
 }
 
 impl From<cargo_metadata::DependencyKind> for DependencyKind {
@@ -62,7 +71,7 @@ impl From<cargo_metadata::DependencyKind> for DependencyKind {
 }
 
 /// 表示一个依赖项的信息
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct DependencyInfo {
     pub name: String,
     pub description: Option<String>,
@@ -76,7 +85,7 @@ pub struct DependencyInfo {
 }
 
 /// 依赖项的统计信息
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, Default)]
 pub struct DependencyStats {
     pub stars: Option<u32>,
     pub downloads: Option<u32>,
@@ -319,6 +328,49 @@ impl Formatter for YamlFormatter {
     }
 }
 
+/// CSV 格式化器
+pub struct CsvFormatter;
+
+impl Formatter for CsvFormatter {
+    fn format(&self, deps: &[DependencyInfo]) -> Result<String> {
+        let header = t!("output.csv_header").replace("，", ",");
+        let mut output = String::new();
+        output.push_str(&header);
+        output.push_str("\n");
+
+        for dep in deps {
+            let stars_str = if dep.stats.stars.is_some() {
+                dep.stats.stars.unwrap().to_string()
+            } else {
+                "".to_string()
+            };
+
+            let downloads_str = if dep.stats.downloads.is_some() {
+                dep.stats.downloads.unwrap().to_string()
+            } else {
+                "".to_string()
+            };
+
+            output.push_str(&format!(
+                "{},{},{},{},{},{},{},{},{},{}",
+                dep.name,
+                dep.description.as_ref().unwrap_or(&"".to_string()),
+                dep.dependency_kind.to_string(),
+                dep.crate_url.as_ref().unwrap_or(&"".to_string()),
+                dep.source_type,
+                dep.source_url.as_ref().unwrap_or(&"".to_string()),
+                stars_str,
+                downloads_str,
+                dep.failed,
+                dep.error_message.as_ref().unwrap_or(&"".to_string())
+            ));
+            output.push_str("\n");
+        }
+
+        Ok(output)
+    }
+}
+
 // 输出管理器
 pub struct OutputManager<W: Write> {
     formatter: Box<dyn Formatter>,
@@ -333,6 +385,7 @@ impl<W: Write> OutputManager<W> {
             OutputFormat::Json => Box::new(JsonFormatter),
             OutputFormat::Toml => Box::new(TomlFormatter),
             OutputFormat::Yaml => Box::new(YamlFormatter),
+            OutputFormat::Csv => Box::new(CsvFormatter),
         };
 
         Self { formatter, writer }

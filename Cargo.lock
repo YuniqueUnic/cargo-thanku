@@ -224,6 +224,7 @@ dependencies = [
  "clap_complete",
  "futures",
  "pretty_assertions",
+ "regex",
  "reqwest",
  "rust-i18n",
  "serde",
