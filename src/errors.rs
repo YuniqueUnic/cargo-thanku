@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+#[allow(clippy::enum_variant_names, dead_code)]
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("HTTP client error: {0}")]
@@ -25,6 +26,21 @@ pub enum AppError {
 
     #[error("Unknown error: {0}")]
     Unknown(String),
+
+    #[error("Invalid CSV content: {0}")]
+    InvalidCsvContent(String),
+
+    #[error("Invalid dependency kind: {0}")]
+    InvalidDependencyKind(String),
+
+    #[error("Invalid source link: {0}")]
+    InvalidSourceLink(String),
+
+    #[error("Invalid status: {0}")]
+    InvalidStatus(String),
+
+    #[error("Invalid stats: {0}")]
+    InvalidStats(String),
 }
 
 impl From<String> for AppError {

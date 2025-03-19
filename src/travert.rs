@@ -24,12 +24,23 @@ impl Travert {
         }
     }
 
-    /// 解析内容，并且转化为 DependencyInfo
+    /// TODO: 解析内容，并且转化为 DependencyInfo
     pub fn parse(&self) -> Result<DependencyInfo> {
         let content = std::fs::read_to_string(&self.path)?;
         let format = self.format;
 
-        Ok(DependencyInfo::default())
+        let dependency_info = match format {
+            OutputFormat::MarkdownTable => {
+                let dependency_info = DependencyInfo::default();
+                dependency_info
+            }
+            _ => anyhow::bail!(t!(
+                "travert.failed_to_parse_content",
+                path = self.path.display()
+            )),
+        };
+
+        Ok(dependency_info)
     }
 
     /// 判断是 markdown 表格还是 markdown 列表

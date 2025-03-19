@@ -505,6 +505,15 @@ output:
     fr: description
     de: Beschreibung
     it: descrizione
+  dependency_kind:
+    zh: 依赖类型
+    en: Dependency kind
+    ja: 依存関係の種類
+    ko: 종속성 유형
+    es: tipo de dependencia
+    fr: type de dépendance
+    de: Abhängigkeitstyp
+    it: tipo di dipendenza
   crates_link:
     zh: Crates.io
     en: Crates.io
@@ -595,7 +604,7 @@ output:
     fr: nom,description,type de dépendance,lien de crates.io,type de source,lien de source,étoiles,téléchargements,échec,message d'erreur
     de: Name,Beschreibung,Abhängigkeitstyp,crates.io-Link,Quellentyp,Quellenlink,Sterne,Downloads,Fehler,Fehlermeldung
     it: nome,descrizione,tipo di dipendenza,link di crates.io,tipo di fonte,link di fonte,stelle,download,fallimento,messaggio di errore
-    
+
 travert:
   failed_to_judge_format:
     zh: "❌ 无法判断文件格式：%{path}"
@@ -606,3 +615,12 @@ travert:
     fr: "❌ Impossible de déterminer le format de fichier: %{path}"
     de: "❌ Dateiformat konnte nicht bestimmt werden: %{path}"
     it: "❌ Formato file non identificato: %{path}"
+  failed_to_parse_content:
+    zh: "❌ 无法解析内容：%{path}"
+    en: "❌ Failed to parse content: %{path}"
+    ja: "❌ 内容を解析できません：%{path}"
+    ko: "❌ 내용을 구문 분석할 수 없습니다: %{path}"
+    es: "❌ No se puede analizar el contenido: %{path}"
+    fr: "❌ Impossible d'analyser le contenu: %{path}"
+    de: "❌ Inhalt konnte nicht analysiert werden: %{path}"
+    it: "❌ Contenuto non analizzato: %{path}"
