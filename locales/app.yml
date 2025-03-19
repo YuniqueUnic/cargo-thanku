@@ -596,14 +596,14 @@ output:
     de: unbekannt
     it: sconosciuto
   csv_header:
-    zh: 名称，描述，依赖类型，crates.io 链接，来源类型，来源链接，星星，下载量，失败，错误信息
-    en: name,description,dependency_kind,crates_link,source_type,source_link,stars,downloads,failed,error_message
-    ja: 名前，説明，依存関係の種類，crates.io リンク，ソースの種類，ソースリンク，星，ダウンロード数，失敗，エラーメッセージ
-    ko: 이름,설명,종속성 유형,crates.io 링크,소스 유형,소스 링크,별,다운로드 수,실패,오류 메시지
-    es: nombre,descripción,tipo de dependencia,enlace de crates.io,tipo de fuente,enlace de fuente,estrellas,descargas,fallo,mensaje de error
-    fr: nom,description,type de dépendance,lien de crates.io,type de source,lien de source,étoiles,téléchargements,échec,message d'erreur
+    zh: 名称，描述，依赖类型，crates.io 链接，来源链接，统计，失败
+    en: name,description,dependency_kind,crates_link,source_link,stats,failed
+    ja: 名前，説明，依存関係の種類，crates.io リンク，ソースリンク，統計，失敗
+    ko: 이름,설명,종속성 유형,crates.io 링크,소스 링크,통계,실패
+    es: nombre,descripción,tipo de dependencia,enlace de crates.io,enlace de fuente,estadísticas,fallo
+    fr: nom,description,type de dépendance,lien de crates.io,lien de source,statistiques,échec
     de: Name,Beschreibung,Abhängigkeitstyp,crates.io-Link,Quellentyp,Quellenlink,Sterne,Downloads,Fehler,Fehlermeldung
-    it: nome,descrizione,tipo di dipendenza,link di crates.io,tipo di fonte,link di fonte,stelle,download,fallimento,messaggio di errore
+    it: nome,descrizione,tipo di dipendenza,link di crates.io,link di fonte,statistiche,fallimento
 
 travert:
   failed_to_judge_format:

@@ -134,21 +134,22 @@ impl DependencyInfo {
         (name, description, crates_link, source_link, stats, status)
     }
 
-    pub fn try_from_csv_line(line: &str) -> Result<Self> {
+    pub fn try_from_csv_line(line: &str, header_num: usize) -> Result<Self> {
         let columns: Vec<&str> = line.split(",").collect();
 
-        let name = columns[0].to_string();
-        let description = DependencyInfo::option_from_str(columns[1])?;
-        let dependency_kind = DependencyKind::from_str(columns[2])?;
-        let crate_url = DependencyInfo::option_from_str(columns[3])?;
-        let source_type = columns[4].to_string();
-        let source_url = DependencyInfo::option_from_str(columns[5])?;
-        let stars = DependencyInfo::option_from_str(columns[6])?;
-        let downloads = DependencyInfo::option_from_str(columns[7])?;
-        let failed = columns[8].parse::<bool>()?;
-        let error_message = DependencyInfo::option_from_str(columns[9])?;
+        if columns.len() != header_num {
+            return Err(AppError::InvalidCsvContent(line.to_string()).into());
+        }
 
-        let dep = DependencyInfo {
+        let name = columns[0].to_string();
+        let description = Self::option_from_str(columns[1])?;
+        let dependency_kind = DependencyKind::from_str(columns[2])?;
+        let (_crateio, crate_url) = Self::parse_md_link(columns[3])?;
+        let (source_type, source_url) = Self::parse_md_link(columns[4])?;
+        let (stars, downloads) = Self::parse_stats(columns[5])?;
+        let (failed, error_message) = Self::parse_status(columns[6])?;
+
+        let dep = Self {
             name,
             description,
             dependency_kind,
@@ -173,7 +174,7 @@ impl DependencyInfo {
         let (stars, downloads) = Self::parse_stats(columns[4])?;
         let (failed, error_message) = Self::parse_status(columns[5])?;
 
-        let dep = DependencyInfo {
+        let dep = Self {
             name,
             description,
             dependency_kind,
@@ -210,7 +211,7 @@ impl DependencyInfo {
         let (stars, downloads) = Self::parse_stats(format!("{})", parts1[2]).as_str())?;
         let (failed, error_message) = Self::parse_status(parts1[3])?;
 
-        let dep = DependencyInfo {
+        let dep = Self {
             name,
             description,
             dependency_kind,
@@ -541,36 +542,16 @@ impl Formatter for CsvFormatter {
     fn format(&self, deps: &[DependencyInfo]) -> Result<String> {
         let header = self.get_header();
         let mut output = String::new();
-        output.push_str(&header);
-        output.push_str("\n");
+        output.push_str(&format!("{}\n", header));
 
         for dep in deps {
-            let stars_str = if dep.stats.stars.is_some() {
-                dep.stats.stars.unwrap().to_string()
-            } else {
-                "".to_string()
-            };
-
-            let downloads_str = if dep.stats.downloads.is_some() {
-                dep.stats.downloads.unwrap().to_string()
-            } else {
-                "".to_string()
-            };
+            let (name, description, crates_link, source_link, stats, failed) = dep.to_strings();
+            let dependency_kind = dep.dependency_kind.to_string();
 
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{},{}",
-                dep.name,
-                dep.description.as_ref().unwrap_or(&"".to_string()),
-                dep.dependency_kind.to_string(),
-                dep.crate_url.as_ref().unwrap_or(&"".to_string()),
-                dep.source_type,
-                dep.source_url.as_ref().unwrap_or(&"".to_string()),
-                stars_str,
-                downloads_str,
-                dep.failed,
-                dep.error_message.as_ref().unwrap_or(&"".to_string())
+                "{},{},{},{},{},{},{}\n",
+                name, description, dependency_kind, crates_link, source_link, stats, failed,
             ));
-            output.push_str("\n");
         }
 
         Ok(output)
@@ -594,27 +575,7 @@ impl Formatter for CsvFormatter {
 
         let mut deps = Vec::new();
         for line in lines {
-            let columns = line.split(",").collect::<Vec<_>>();
-            let column_num = columns.len();
-
-            if column_num != self.column_num() {
-                return Err(AppError::InvalidCsvContent(content.to_string()).into());
-            }
-
-            let dep = DependencyInfo {
-                name: columns[0].to_string(),
-                description: Some(columns[1].to_string()),
-                dependency_kind: DependencyKind::Normal,
-                crate_url: Some(columns[2].to_string()),
-                source_type: columns[3].to_string(),
-                source_url: Some(columns[4].to_string()),
-                stats: DependencyStats {
-                    stars: Some(columns[5].parse::<u32>().unwrap()),
-                    downloads: Some(columns[6].parse::<u32>().unwrap()),
-                },
-                failed: columns[7].parse::<bool>().unwrap(),
-                error_message: Some(columns[8].to_string()),
-            };
+            let dep = DependencyInfo::try_from_csv_line(line, column_num)?;
             deps.push(dep);
         }
 
@@ -967,9 +928,11 @@ mod tests {
 
     #[test]
     fn test_try_from_csv_line() -> Result<()> {
-        const LINE: &str = "serde,serde is a powerful data serialization framework for Rust,normal,https://crates.io/crates/serde,github,https://github.com/serde-rs/serde,1000,100,✅,";
+        const LINE: &str = "serde,serde is a powerful data serialization framework for Rust,normal,[crates.io](https://crates.io/crates/serde),[GitHub](https://github.com/serde-rs/serde),🌟 1000,✅,";
 
-        let dep = DependencyInfo::try_from_csv_line(LINE)?;
+        let header_num = LINE.split(",").count();
+
+        let dep = DependencyInfo::try_from_csv_line(LINE, header_num)?;
         assert_eq!(dep.name, "serde");
         assert_eq!(
             dep.description,
@@ -986,7 +949,7 @@ mod tests {
             Some("https://github.com/serde-rs/serde".to_string())
         );
         assert_eq!(dep.stats.stars, Some(1000));
-        assert_eq!(dep.stats.downloads, Some(100));
+        assert_eq!(dep.stats.downloads, None);
         assert!(!dep.failed);
         assert_eq!(dep.error_message, None);
 
