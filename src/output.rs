@@ -1,7 +1,7 @@
 use anyhow::Result;
 use rust_i18n::t;
 use serde::{Deserialize, Serialize};
-use std::{io::Write, str::FromStr};
+use std::{borrow::Cow, io::Write, str::FromStr};
 
 use crate::{errors::AppError, sources::Source};
 
@@ -79,6 +79,26 @@ impl From<cargo_metadata::DependencyKind> for DependencyKind {
             cargo_metadata::DependencyKind::Development => Self::Development,
             cargo_metadata::DependencyKind::Build => Self::Build,
             _ => Self::Unknown,
+        }
+    }
+}
+
+impl DependencyKind {
+    pub fn to_md_table_header(&self) -> &str {
+        match self {
+            DependencyKind::Normal => "|🔍|Normal| | | | |\n",
+            DependencyKind::Development => "|🔧|Development| | | | |\n",
+            DependencyKind::Build => "|🔨|Build| | | | |\n",
+            DependencyKind::Unknown => "|❓|Unknown| | | | |\n",
+        }
+    }
+
+    pub fn to_md_list_header(&self) -> Cow<'_, str> {
+        match self {
+            DependencyKind::Normal => t!("output.normal"),
+            DependencyKind::Development => t!("output.development"),
+            DependencyKind::Build => t!("output.build"),
+            DependencyKind::Unknown => t!("output.unknown"),
         }
     }
 }
@@ -164,11 +184,12 @@ impl DependencyInfo {
         Ok(dep)
     }
 
-    pub fn try_from_md_table_line(line: &str, dependency_kind: DependencyKind) -> Result<Self> {
+    pub fn try_from_md_table_line(line: &str, dependency_kind: &DependencyKind) -> Result<Self> {
         let columns: Vec<&str> = line.split("|").collect();
 
         let name = columns[0].to_string();
         let description = DependencyInfo::option_from_str(columns[1])?;
+        let dependency_kind = dependency_kind.clone();
         let (_, crate_url) = Self::parse_md_link(columns[2])?;
         let (source_type, source_url) = Self::parse_md_link(columns[3])?;
         let (stars, downloads) = Self::parse_stats(columns[4])?;
@@ -189,7 +210,7 @@ impl DependencyInfo {
         Ok(dep)
     }
 
-    pub fn try_from_md_list_line(line: &str, dependency_kind: DependencyKind) -> Result<Self> {
+    pub fn try_from_md_list_line(line: &str, dependency_kind: &DependencyKind) -> Result<Self> {
         // ## Development
         // - serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅
         // the output code is like this:
@@ -204,6 +225,7 @@ impl DependencyInfo {
         let parts0: Vec<&str> = parts[0].split(":").collect();
         let name = parts0[0].trim_start_matches('-').trim().to_string();
         let description = DependencyInfo::option_from_str(parts0[1])?;
+        let dependency_kind = dependency_kind.clone();
 
         let parts1: Vec<&str> = parts[1].split(")").collect();
         let (_, crate_url) = Self::parse_md_link(format!("{})", parts1[0]).as_str())?;
@@ -368,6 +390,138 @@ pub trait Formatter {
 /// Markdown 表格格式化器
 pub struct MarkdownTableFormatter;
 
+impl MarkdownTableFormatter {
+    /// 从文本内容中提取第一个合法的 Markdown 表格
+    ///
+    /// # 参数
+    /// * `content` - 要搜索的文本内容
+    ///
+    /// # 返回值
+    /// * `Option<&str>` - 找到的第一个合法 Markdown 表格，如果没有找到则返回 None
+    fn get_first_md_table(content: &str) -> Option<&str> {
+        // 按行分割文本
+        let lines: Vec<&str> = content.lines().collect();
+
+        // 至少需要两行才能形成一个表格（表头和分隔符）
+        if lines.len() < 2 {
+            return None;
+        }
+
+        for i in 0..lines.len() - 1 {
+            // 检查当前行是否可能是表头
+            let header_line = lines[i].trim();
+            if !header_line.starts_with('|') && !header_line.contains('|') {
+                continue;
+            }
+
+            // 检查下一行是否是有效的分隔符行
+            let separator_line = lines[i + 1].trim();
+            if !MarkdownTableFormatter::is_valid_separator(separator_line) {
+                continue;
+            }
+
+            // 计算列数
+            let header_columns = MarkdownTableFormatter::count_columns(header_line);
+            let separator_columns = MarkdownTableFormatter::count_columns(separator_line);
+
+            // 检查表头和分隔符的列数是否匹配
+            if header_columns != separator_columns {
+                continue;
+            }
+
+            // 找到表格的结束位置
+            let mut end_idx = i + 2;
+            while end_idx < lines.len() {
+                let row = lines[end_idx].trim();
+                // 如果行为空或不包含'|'，则表格结束
+                if row.is_empty() || (!row.starts_with('|') && !row.contains('|')) {
+                    break;
+                }
+
+                // 检查数据行的列数是否与表头一致
+                if MarkdownTableFormatter::count_columns(row) != header_columns {
+                    break;
+                }
+
+                end_idx += 1;
+            }
+
+            // 如果只有表头和分隔符，也是有效的表格
+            if end_idx >= i + 2 {
+                // 计算表格在原始文本中的起始和结束位置
+                let start_pos = content.find(lines[i]).unwrap();
+                let end_line_start = content.find(lines[end_idx - 1]).unwrap();
+                let end_pos = end_line_start + lines[end_idx - 1].len();
+
+                return Some(&content[start_pos..end_pos]);
+            }
+        }
+
+        None
+    }
+
+    /// 检查一行是否是有效的 Markdown 表格分隔符
+    fn is_valid_separator(line: &str) -> bool {
+        if !line.contains('|') {
+            return false;
+        }
+
+        // 分割分隔符行
+        let cells = MarkdownTableFormatter::split_table_row(line);
+
+        // 检查每个分隔符单元格是否有效
+        for cell in cells {
+            let trimmed = cell.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+
+            // 分隔符必须只包含 '-', ':', 和空格
+            if !trimmed.chars().all(|c| c == '-' || c == ':' || c == ' ') {
+                return false;
+            }
+
+            // 分隔符必须至少包含一个 '-'
+            if !trimmed.contains('-') {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// 计算表格行中的列数
+    fn count_columns(line: &str) -> usize {
+        MarkdownTableFormatter::split_table_row(line).len()
+    }
+
+    /// 分割表格行为单元格
+    fn split_table_row(line: &str) -> Vec<&str> {
+        let line = line.trim();
+        let mut cells = Vec::new();
+
+        // 处理以'|'开头和结尾的情况
+        let processed_line = if line.starts_with('|') {
+            if line.ends_with('|') {
+                &line[1..line.len() - 1]
+            } else {
+                &line[1..]
+            }
+        } else if line.ends_with('|') {
+            &line[..line.len() - 1]
+        } else {
+            line
+        };
+
+        // 分割单元格
+        for cell in processed_line.split('|') {
+            cells.push(cell);
+        }
+
+        cells
+    }
+}
+
 impl Formatter for MarkdownTableFormatter {
     fn format(&self, deps: &[DependencyInfo]) -> Result<String> {
         let mut output = String::new();
@@ -395,12 +549,7 @@ impl Formatter for MarkdownTableFormatter {
             let mut show_header = true;
             let deps = take_sort_dependencies(deps, &kind);
 
-            let header = match kind {
-                DependencyKind::Normal => "|🔍|Normal| | | | |\n",
-                DependencyKind::Development => "|🔧|Development| | | | |\n",
-                DependencyKind::Build => "|🔨|Build| | | | |\n",
-                DependencyKind::Unknown => "|❓|Unknown| | | | |\n",
-            };
+            let header = kind.to_md_table_header();
 
             for dep in deps {
                 if show_header {
@@ -421,7 +570,46 @@ impl Formatter for MarkdownTableFormatter {
 
     // TODO: 实现解析
     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>> {
-        Ok(vec![])
+        // 1. find the markdown table header and separator
+        // 2. find the DependencyKind row and store it into a variable to pass to the next step
+        // 3. parse the markdown table row into DependencyInfo struct
+        let first_md_table = MarkdownTableFormatter::get_first_md_table(content);
+        if first_md_table.is_none() {
+            return Ok(vec![]);
+        }
+
+        let md_table = first_md_table.unwrap();
+
+        let mut deps = vec![];
+        let mut dependency_kind = DependencyKind::Unknown;
+        // skip the first two lines (header and separator)
+        for line in md_table.lines().skip(2) {
+            let line = line.trim();
+            match line {
+                line if line.contains(DependencyKind::Normal.to_md_table_header()) => {
+                    dependency_kind = DependencyKind::Normal;
+                    continue;
+                }
+                line if line.contains(DependencyKind::Development.to_md_table_header()) => {
+                    dependency_kind = DependencyKind::Development;
+                    continue;
+                }
+                line if line.contains(DependencyKind::Build.to_md_table_header()) => {
+                    dependency_kind = DependencyKind::Build;
+                    continue;
+                }
+                line if line.contains(DependencyKind::Unknown.to_md_table_header()) => {
+                    dependency_kind = DependencyKind::Unknown;
+                    continue;
+                }
+                _ => {}
+            };
+
+            let dep = DependencyInfo::try_from_md_table_line(line, &dependency_kind)?;
+            deps.push(dep);
+        }
+
+        Ok(deps)
     }
 }
 
@@ -456,12 +644,7 @@ impl Formatter for MarkdownListFormatter {
             let mut show_header = true;
             let deps = take_sort_dependencies(deps, &kind);
 
-            let header = match kind {
-                DependencyKind::Normal => t!("output.normal"),
-                DependencyKind::Development => t!("output.development"),
-                DependencyKind::Build => t!("output.build"),
-                DependencyKind::Unknown => t!("output.unknown"),
-            };
+            let header = kind.to_md_list_header();
 
             for dep in deps {
                 if show_header {
@@ -557,7 +740,6 @@ impl Formatter for CsvFormatter {
         Ok(output)
     }
 
-    // TODO: 实现解析
     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>> {
         let mut lines = content.lines();
         let header = lines.next();
@@ -960,7 +1142,7 @@ mod tests {
     fn test_try_from_md_list_line() -> Result<()> {
         const LINE: &str = "- serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅";
 
-        let dep = DependencyInfo::try_from_md_list_line(LINE, DependencyKind::Normal)?;
+        let dep = DependencyInfo::try_from_md_list_line(LINE, &DependencyKind::Normal)?;
         assert_eq!(dep.name, "serde");
         assert_eq!(
             dep.description,
@@ -981,6 +1163,30 @@ mod tests {
         assert!(!dep.failed);
         assert_eq!(dep.error_message, None);
 
+        Ok(())
+    }
+
+    const TEST_MD_TABLE: &str = r"hfshdfhsfjsdjfgg
+    | 名称 | 描述 |  |
+    |:---:|:---:|:---:|
+    | hello | world | NIhao |
+    | 名称 | 描述 | No 1 end|
+    |:---:|:---:|| 名称 | 描述 | | |
+    |:---:|:---:|
+    | 名称 | 描述 |  | 第二个 | 
+    |:---:|:---:|:---:|:---:|
+    | hello | world | NIhao | :---:|
+    |:---:|:---:|| 名称 |
+    |:---:|:---:|
+    | hello | world |
+    | 名称 | 描述 | | |
+    |:---:|:---:|
+    ";
+    #[test]
+    fn test_find_md_start_end_pos() -> Result<()> {
+        let md_table = MarkdownTableFormatter::get_first_md_table(TEST_MD_TABLE)
+            .ok_or_else(|| anyhow::anyhow!("no table found"))?;
+        dbg!(md_table);
         Ok(())
     }
 }

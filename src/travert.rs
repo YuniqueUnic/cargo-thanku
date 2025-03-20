@@ -55,11 +55,28 @@ impl Travert {
             \|\s*$",
         )?;
 
-        Ok(if table_re.is_match(content) {
-            OutputFormat::MarkdownTable
-        } else {
-            OutputFormat::MarkdownList
-        })
+        // find the first match
+        // then split it into groups
+        if let Some(captures) = table_re.captures(content) {
+            if captures.len() >= 3 {
+                if let (Some(header_match), Some(separator_match)) =
+                    (captures.get(1), captures.get(2))
+                {
+                    let header_line = header_match.as_str().trim();
+                    let separator_line = separator_match.as_str().trim();
+
+                    let header_parts: Vec<&str> = header_line.split('|').collect();
+
+                    let separator_parts: Vec<&str> = separator_line.split('|').collect();
+
+                    if header_parts.len() > 0 && header_parts.len() == separator_parts.len() {
+                        return Ok(OutputFormat::MarkdownTable);
+                    }
+                }
+            }
+        }
+
+        Ok(OutputFormat::MarkdownList)
     }
 
     fn judge_format<P: AsRef<Path>>(path: P) -> Result<OutputFormat> {
