@@ -41,6 +41,15 @@ pub enum AppError {
 
     #[error("Invalid stats: {0}")]
     InvalidStats(String),
+
+    #[error("Invalid table header: {0}")]
+    InvalidTableHeader(String),
+
+    #[error("Invalid list line: {0}")]
+    InvalidListLine(String),
+
+    #[error("Invalid table line: {0}")]
+    InvalidTableLine(String),
 }
 
 impl From<String> for AppError {

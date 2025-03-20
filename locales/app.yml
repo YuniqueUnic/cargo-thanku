@@ -590,7 +590,7 @@ output:
     zh: 未知
     en: Unknown
     ja: 未知
-    ko: 알 수 없음
+    ko: 알수없음
     es: desconocido
     fr: inconnu
     de: unbekannt
@@ -604,6 +604,105 @@ output:
     fr: nom,description,type de dépendance,lien de crates.io,lien de source,statistiques,échec
     de: Name,Beschreibung,Abhängigkeitstyp,crates.io-Link,Quellentyp,Quellenlink,Sterne,Downloads,Fehler,Fehlermeldung
     it: nome,descrizione,tipo di dipendenza,link di crates.io,link di fonte,statistiche,fallimento
+  failed_to_parse_list_line:
+    zh: "❌ 无法解析列表行：%{line}"
+    en: "❌ Failed to parse list line: %{line}"
+    ja: "❌ リスト行を解析できません：%{line}"
+    ko: "❌ 목록 행을 구문 분석할 수 없습니다: %{line}"
+    es: "❌ No se puede analizar la línea de lista: %{line}"
+    fr: "❌ Impossible d'analyser la ligne de liste: %{line}"
+    de: "❌ Listezeile konnte nicht analysiert werden: %{line}"
+    it: "❌ Linea di lista non può essere analizzata: %{line}"
+  failed_to_parse_table_line:
+    zh: "❌ 无法解析表格行：%{line}"
+    en: "❌ Failed to parse table line: %{line}"
+    ja: "❌ 表の行を解析できません：%{line}"
+    ko: "❌ 표의 행을 구문 분석할 수 없습니다: %{line}"
+    es: "❌ No se puede analizar la línea de tabla: %{line}"
+    fr: "❌ Impossible d'analyser la ligne de tableau: %{line}"
+    de: "❌ Tabellenzeile konnte nicht analysiert werden: %{line}"
+    it: "❌ Linea di tabella non può essere analizzata: %{line}"
+  invalid_list_line:
+    zh: "❌ 无效的列表行：%{line}"
+    en: "❌ Invalid list line: %{line}"
+    ja: "❌ リスト行が無効です：%{line}"
+    ko: "❌ 목록 행이 유효하지 않습니다: %{line}"
+    es: "❌ La línea de lista es inválida: %{line}"
+    fr: "❌ La ligne de liste est invalide: %{line}"
+    de: "❌ Die Listzeile ist ungültig: %{line}"
+    it: "❌ La riga di lista è invalida: %{line}"
+  invalid_table_line:
+    zh: "❌ 无效的表格行：%{line}"
+    en: "❌ Invalid table line: %{line}"
+    ja: "❌ 表の行が無効です：%{line}"
+    ko: "❌ 표의 행이 유효하지 않습니다: %{line}"
+    es: "❌ La línea de tabla es inválida: %{line}"
+    fr: "❌ La ligne de tableau est invalide: %{line}"
+    de: "❌ Die Tabellenzeile ist ungültig: %{line}"
+    it: "❌ La riga di tabella è invalida: %{line}"
+  invalid_list_header:
+    zh: "❌ 无效的列表头：%{line}"
+    en: "❌ Invalid list header: %{line}"
+    ja: "❌ リストヘッダーが無効です：%{line}"
+    ko: "❌ 목록 헤더가 유효하지 않습니다: %{line}"
+    es: "❌ El encabezado de la lista es inválido: %{line}"
+    fr: "❌ L'en-tête de liste est invalide: %{line}"
+    de: "❌ Der Listenkopf ist ungültig: %{line}"
+    it: "❌ L'intestazione della lista è invalida: %{line}"
+  invalid_table_header:
+    zh: "❌ 无效的表格头：%{line}"
+    en: "❌ Invalid table header: %{line}"
+    ja: "❌ 表のヘッダーが無効です：%{line}"
+    ko: "❌ 표의 헤더가 유효하지 않습니다: %{line}"
+    es: "❌ El encabezado de la tabla es inválido: %{line}"
+    fr: "❌ L'en-tête de tableau est invalide: %{line}"
+    de: "❌ Der Tabellenkopf ist ungültig: %{line}"
+    it: "❌ L'intestazione della tabella è invalida: %{line}"
+  invalid_list_format:
+    zh: "❌ 无效的列表格式：%{line}"
+    en: "❌ Invalid list format: %{line}"
+    ja: "❌ リスト形式が無効です：%{line}"
+    ko: "❌ 목록 형식이 유효하지 않습니다: %{line}"
+    es: "❌ El formato de la lista es inválido: %{line}"
+    fr: "❌ Le format de la liste est invalide: %{line}"
+    de: "❌ Der Listenformat ist ungültig: %{line}"
+    it: "❌ Il formato della lista è invalido: %{line}"
+  invalid_table_format:
+    zh: "❌ 无效的表格格式：%{line}"
+    en: "❌ Invalid table format: %{line}"
+    ja: "❌ 表の形式が無効です：%{line}"
+    ko: "❌ 표의 형식이 유효하지 않습니다: %{line}"
+    es: "❌ El formato de la tabla es inválido: %{line}"
+    fr: "❌ Le format de la table est invalide: %{line}"
+    de: "❌ Der Tabellenformat ist ungültig: %{line}"
+    it: "❌ Il formato della tabella è invalido: %{line}"
+  invalid_csv_content:
+    zh: "❌ 无效的 CSV 内容：%{path}"
+    en: "❌ Invalid CSV content: %{path}"
+    ja: "❌ CSV 内容が無効です：%{path}"
+    ko: "❌ CSV 내용이 유효하지 않습니다: %{path}"
+    es: "❌ El contenido de CSV es inválido: %{path}"
+    fr: "❌ Le contenu de CSV est invalide: %{path}"
+    de: "❌ Der CSV-Inhalt ist ungültig: %{path}"
+    it: "❌ Il contenuto CSV è invalido: %{path}"
+  invalid_list_header_num:
+    zh: "❌ 无效的列表头数量，需要至少 2 个：%{num}"
+    en: "❌ Invalid list header number, need at least 2: %{num}"
+    ja: "❌ リストヘッダーの数が無効です：%{num}"
+    ko: "❌ 목록 헤더의 수가 유효하지 않습니다：%{num}"
+    es: "❌ El número de encabezado de lista es inválido: %{num}"
+    fr: "❌ Le nombre d'en-tête de liste est invalide: %{num}"
+    de: "❌ Die Anzahl der Listenköpfe ist ungültig: %{num}"
+    it: "❌ Il numero di intestazioni di lista è invalido: %{num}"
+  hit_the_wall_of_parsing_list_line:
+    zh: "❌ 解析列表行时遇到终点：%{line}"
+    en: "❌ Hit the wall of parsing list line: %{line}"
+    ja: "❌ リスト行の解析に失敗しました：%{line}"
+    ko: "❌ 목록 행을 구문 분석하는 데 실패했습니다：%{line}"
+    es: "❌ Error al analizar la línea de lista: %{line}"
+    fr: "❌ Impossible d'analyser la ligne de liste: %{line}"
+    de: "❌ Die Listzeile konnte nicht analysiert werden: %{line}"
+    it: "❌ La riga di lista non può essere analizzata: %{line}"
 
 travert:
   failed_to_judge_format:

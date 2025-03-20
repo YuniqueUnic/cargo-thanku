@@ -1,7 +1,8 @@
 use anyhow::Result;
 use rust_i18n::t;
 use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, io::Write, str::FromStr};
+use std::{io::Write, str::FromStr};
+use tracing::instrument;
 
 use crate::{errors::AppError, sources::Source};
 
@@ -61,6 +62,7 @@ impl std::str::FromStr for DependencyKind {
             "normal" => Self::Normal,
             "development" => Self::Development,
             "build" => Self::Build,
+            "unknown" => Self::Unknown,
             _ => return Err(AppError::InvalidDependencyKind(s.to_string())),
         })
     }
@@ -86,10 +88,10 @@ impl From<cargo_metadata::DependencyKind> for DependencyKind {
 impl DependencyKind {
     pub fn to_md_table_header(&self) -> impl AsRef<str> {
         match self {
-            DependencyKind::Normal => "|🔍|Normal| | | | |",
-            DependencyKind::Development => "|🔧|Development| | | | |",
-            DependencyKind::Build => "|🔨|Build| | | | |",
-            DependencyKind::Unknown => "|❓|Unknown| | | | |",
+            DependencyKind::Normal => format!("|🔍|{}", t!("output.normal")),
+            DependencyKind::Development => format!("|🔧|{}", t!("output.development")),
+            DependencyKind::Build => format!("|🔨|{}", t!("output.build")),
+            DependencyKind::Unknown => format!("|❓|{}", t!("output.unknown")),
         }
     }
 
@@ -102,6 +104,25 @@ impl DependencyKind {
         };
 
         format!("## {}", s)
+    }
+
+    #[instrument]
+    pub fn try_from_table_header(s: &str) -> Result<Self> {
+        let s = s.trim();
+        let columns: Vec<&str> = s.split("|").collect();
+        if columns.len() < 2 {
+            return Err(AppError::InvalidTableHeader(s.to_string()).into());
+        }
+
+        let kind = columns[1].trim();
+        Ok(Self::from_str(kind)?)
+    }
+
+    #[instrument]
+    pub fn try_from_list_header(s: &str) -> Result<Self> {
+        let s = s.trim_start_matches("## ");
+        let s = s.trim_end_matches("\n");
+        Ok(Self::from_str(s)?)
     }
 }
 
@@ -189,6 +210,10 @@ impl DependencyInfo {
     pub fn try_from_md_table_line(line: &str, dependency_kind: &DependencyKind) -> Result<Self> {
         let columns: Vec<&str> = line.split("|").collect();
 
+        if columns.len() != 6 {
+            return Err(AppError::InvalidTableLine(line.to_string()).into());
+        }
+
         let name = columns[0].to_string();
         let description = DependencyInfo::option_from_str(columns[1])?;
         let dependency_kind = dependency_kind.clone();
@@ -223,6 +248,10 @@ impl DependencyInfo {
 
         // we need to parse the line to get the name, description, crates_link, source_link, stats, status
         let parts: Vec<&str> = line.split(" - ").collect();
+
+        if parts.len() != 4 {
+            return Err(AppError::InvalidListLine(line.to_string()).into());
+        }
 
         let parts0: Vec<&str> = parts[0].split(":").collect();
         let name = parts0[0].trim_start_matches('-').trim().to_string();
@@ -393,7 +422,7 @@ pub trait Formatter {
 pub struct MarkdownTableFormatter;
 
 impl MarkdownTableFormatter {
-    fn get_header(&self) -> impl AsRef<str> {
+    fn get_header() -> impl AsRef<str> {
         format!(
             "| {} | {} | {} | {} | {} | {} |",
             t!("output.name"),
@@ -405,12 +434,16 @@ impl MarkdownTableFormatter {
         )
     }
 
-    fn get_column_num(&self) -> usize {
-        self.get_header().as_ref().split('|').count() - 2
+    fn get_column_num() -> usize {
+        MarkdownTableFormatter::get_header()
+            .as_ref()
+            .split('|')
+            .count()
+            - 2
     }
 
-    fn get_separator(&self) -> impl AsRef<str> {
-        let column_num = self.get_column_num();
+    fn get_separator() -> impl AsRef<str> {
+        let column_num = MarkdownTableFormatter::get_column_num();
         format!("|{}", "---|".repeat(column_num))
     }
 
@@ -550,8 +583,14 @@ impl Formatter for MarkdownTableFormatter {
         let mut output = String::new();
 
         // 表头
-        output.push_str(&format!("\n{}\n", self.get_header().as_ref()));
-        output.push_str(&format!("{}\n", self.get_separator().as_ref()));
+        output.push_str(&format!(
+            "\n{}\n",
+            MarkdownTableFormatter::get_header().as_ref()
+        ));
+        output.push_str(&format!(
+            "{}\n",
+            MarkdownTableFormatter::get_separator().as_ref()
+        ));
 
         let dep_kind_order = vec![
             DependencyKind::Normal,
@@ -646,18 +685,82 @@ fn take_sort_dependencies<'a>(
 pub struct MarkdownListFormatter;
 
 impl MarkdownListFormatter {
-    fn get_header(&self) -> impl AsRef<str> {
+    fn get_header() -> impl AsRef<str> {
         format!("# {}", t!("output.dependencies"))
     }
+
     fn get_first_md_list(content: &str) -> Option<&str> {
-        None
+        let regex = regex::Regex::new(r"(?m)^(#|##) \w+$").ok()?;
+
+        // result will be an iterator over tuples containing the start and end indices for each match in the string
+        let result = regex.captures_iter(content);
+
+        let mut matches_len = 0;
+        let (mut start_header_pos, mut start_flag) = (0, false);
+        let mut end_header_pos = 0;
+
+        for mat in result {
+            let s = mat.get(0);
+            if let Some(s) = s {
+                if !start_flag {
+                    if !s.as_str().contains("#") {
+                        continue;
+                    }
+                    start_flag = true;
+                    start_header_pos = s.start();
+                }
+                matches_len += 1;
+                end_header_pos = s.start();
+            }
+        }
+
+        if matches_len < 2 {
+            tracing::warn!(
+                "{}",
+                t!("output.invalid_list_header_num", num = matches_len)
+            );
+            return None;
+        }
+
+        let last_content = &content[end_header_pos..];
+        let mut lines = last_content.lines();
+        let sub_header = lines.next()?; // skip the first line (sub-header line)
+
+        let sub_header_kind = DependencyKind::try_from_list_header(sub_header).ok()?;
+
+        let mut offset = 0;
+        offset += sub_header.len();
+        for line in lines {
+            if line.is_empty() {
+                offset += line.len();
+                continue;
+            }
+
+            if let Ok(_) = DependencyInfo::try_from_md_list_line(line, &sub_header_kind) {
+                offset += line.len();
+            } else {
+                tracing::warn!(
+                    "{}",
+                    t!("output.hit_the_wall_of_parsing_list_line", line = line)
+                );
+                break;
+            }
+        }
+
+        end_header_pos += offset;
+        let md_list_content = &content[start_header_pos..end_header_pos];
+
+        Some(md_list_content)
     }
 }
 
 impl Formatter for MarkdownListFormatter {
     fn format(&self, deps: &[DependencyInfo]) -> Result<String> {
         let mut output = String::new();
-        output.push_str(&format!("{}\n\n", self.get_header().as_ref()));
+        output.push_str(&format!(
+            "{}\n\n",
+            MarkdownListFormatter::get_header().as_ref()
+        ));
 
         let dep_kind_order = vec![
             DependencyKind::Normal,
@@ -1117,9 +1220,9 @@ mod tests {
 
     #[test]
     fn test_md_table_func() -> Result<()> {
-        let header = MarkdownTableFormatter.get_header();
-        let column_num = MarkdownTableFormatter.get_column_num();
-        let separator = MarkdownTableFormatter.get_separator();
+        let header = MarkdownTableFormatter::get_header();
+        let column_num = MarkdownTableFormatter::get_column_num();
+        let separator = MarkdownTableFormatter::get_separator();
         dbg!(header.as_ref(), column_num, separator.as_ref());
         Ok(())
     }
@@ -1261,6 +1364,31 @@ mod tests {
         let md_table = MarkdownTableFormatter::get_first_md_table(TEST_MD_TABLE)
             .ok_or_else(|| anyhow::anyhow!("no table found"))?;
         dbg!(md_table);
+        Ok(())
+    }
+
+    const TEST_MD_LIST: &str = "# 依赖项
+## Normal
+## Development
+- 1serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅
+### 开发依赖
+- 2serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅
+- 3serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅
+- 4serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅
+## Build
+- 5serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅
+- 6serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅
+- 7serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅
+- 8serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅
+## Unknown
+- 9serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅ 
+### 未知依赖";
+
+    #[test]
+    fn test_find_md_list() -> Result<()> {
+        let md_list_content = MarkdownListFormatter::get_first_md_list(TEST_MD_LIST);
+        assert!(md_list_content.is_some());
+        dbg!(md_list_content.unwrap());
         Ok(())
     }
 }
