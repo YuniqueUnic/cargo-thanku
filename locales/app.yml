@@ -596,14 +596,14 @@ output:
     de: unbekannt
     it: sconosciuto
   csv_header:
-    zh: 名称，描述，依赖类型，crates.io 链接，来源链接，统计，失败
-    en: name,description,dependency_kind,crates_link,source_link,stats,failed
-    ja: 名前，説明，依存関係の種類，crates.io リンク，ソースリンク，統計，失敗
-    ko: 이름,설명,종속성 유형,crates.io 링크,소스 링크,통계,실패
-    es: nombre,descripción,tipo de dependencia,enlace de crates.io,enlace de fuente,estadísticas,fallo
-    fr: nom,description,type de dépendance,lien de crates.io,lien de source,statistiques,échec
+    zh: 名称，描述，依赖类型，crates.io 链接，来源链接，统计，状态
+    en: name,description,dependency_kind,crates_link,source_link,stats,status
+    ja: 名前，説明，依存関係の種類，crates.io リンク，ソースリンク，統計，ステータス
+    ko: 이름,설명,종속성 유형,crates.io 링크,소스 링크,통계,상태
+    es: nombre,descripción,tipo de dependencia,enlace de crates.io,enlace de fuente,estadísticas,estado
+    fr: nom,description,type de dépendance,lien de crates.io,lien de source,statistiques,statut
     de: Name,Beschreibung,Abhängigkeitstyp,crates.io-Link,Quellentyp,Quellenlink,Sterne,Downloads,Fehler,Fehlermeldung
-    it: nome,descrizione,tipo di dipendenza,link di crates.io,link di fonte,statistiche,fallimento
+    it: nome,descrizione,tipo di dipendenza,link di crates.io,link di fonte,statistiche,stato
   failed_to_parse_list_line:
     zh: "❌ 无法解析列表行：%{line}"
     en: "❌ Failed to parse list line: %{line}"

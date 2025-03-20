@@ -58,19 +58,36 @@ impl std::str::FromStr for DependencyKind {
     type Err = AppError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s.to_lowercase().as_str() {
-            "normal" => Self::Normal,
-            "development" => Self::Development,
-            "build" => Self::Build,
-            "unknown" => Self::Unknown,
-            _ => return Err(AppError::InvalidDependencyKind(s.to_string())),
-        })
+        let s = s.trim().to_lowercase();
+
+        if s.is_empty() {
+            return Err(AppError::InvalidDependencyKind(s.to_string()).into());
+        }
+
+        if s == t!("output.normal").to_lowercase() {
+            Ok(Self::Normal)
+        } else if s == t!("output.development").to_lowercase() {
+            Ok(Self::Development)
+        } else if s == t!("output.build").to_lowercase() {
+            Ok(Self::Build)
+        } else if s == t!("output.unknown").to_lowercase() {
+            Ok(Self::Unknown)
+        } else {
+            Err(AppError::InvalidDependencyKind(s.to_string()).into())
+        }
     }
 }
 
 impl std::fmt::Display for DependencyKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        let s = match self {
+            DependencyKind::Normal => t!("output.normal"),
+            DependencyKind::Development => t!("output.development"),
+            DependencyKind::Build => t!("output.build"),
+            DependencyKind::Unknown => t!("output.unknown"),
+        };
+
+        write!(f, "{}", s)
     }
 }
 
@@ -88,10 +105,10 @@ impl From<cargo_metadata::DependencyKind> for DependencyKind {
 impl DependencyKind {
     pub fn to_md_table_header(&self) -> impl AsRef<str> {
         match self {
-            DependencyKind::Normal => format!("|🔍|{}", t!("output.normal")),
-            DependencyKind::Development => format!("|🔧|{}", t!("output.development")),
-            DependencyKind::Build => format!("|🔨|{}", t!("output.build")),
-            DependencyKind::Unknown => format!("|❓|{}", t!("output.unknown")),
+            DependencyKind::Normal => format!("| 🔍 | {} | | | | |", t!("output.normal")),
+            DependencyKind::Development => format!("| 🔧 | {} | | | | |", t!("output.development")),
+            DependencyKind::Build => format!("| 🔨 | {} | | | | |", t!("output.build")),
+            DependencyKind::Unknown => format!("| ❓ | {} | | | | |", t!("output.unknown")),
         }
     }
 
@@ -178,14 +195,18 @@ impl DependencyInfo {
     }
 
     pub fn try_from_csv_line(line: &str, header_num: usize) -> Result<Self> {
-        let columns: Vec<&str> = line.split(",").collect();
+        let columns: Vec<&str> = line.split(",").map(|s| s.trim()).collect();
 
         if columns.len() != header_num {
             return Err(AppError::InvalidCsvContent(line.to_string()).into());
         }
 
         let name = columns[0].to_string();
-        let description = Self::option_from_str(columns[1])?;
+        let description = if let Some(description) = Self::option_from_str::<String>(columns[1])? {
+            Some(description.replace(";", ","))
+        } else {
+            None
+        };
         let dependency_kind = DependencyKind::from_str(columns[2])?;
         let (_crateio, crate_url) = Self::parse_md_link(columns[3])?;
         let (source_type, source_url) = Self::parse_md_link(columns[4])?;
@@ -208,9 +229,13 @@ impl DependencyInfo {
     }
 
     pub fn try_from_md_table_line(line: &str, dependency_kind: &DependencyKind) -> Result<Self> {
-        let columns: Vec<&str> = line.split("|").collect();
+        let columns: Vec<&str> = line
+            .trim_matches(['|', ' ', '\n'])
+            .split("|")
+            .map(|s| s.trim())
+            .collect();
 
-        if columns.len() != 6 {
+        if columns.len() != MarkdownTableFormatter::get_column_num() {
             return Err(AppError::InvalidTableLine(line.to_string()).into());
         }
 
@@ -249,16 +274,26 @@ impl DependencyInfo {
         // we need to parse the line to get the name, description, crates_link, source_link, stats, status
         let parts: Vec<&str> = line.split(" - ").collect();
 
-        if parts.len() != 4 {
+        if parts.len() != 2 {
             return Err(AppError::InvalidListLine(line.to_string()).into());
         }
 
-        let parts0: Vec<&str> = parts[0].split(":").collect();
+        let parts0: Vec<&str> = parts[0].split(" : ").collect();
+
+        if parts0.len() != 2 {
+            return Err(AppError::InvalidListLine(line.to_string()).into());
+        }
+
         let name = parts0[0].trim_start_matches('-').trim().to_string();
         let description = DependencyInfo::option_from_str(parts0[1])?;
         let dependency_kind = dependency_kind.clone();
 
         let parts1: Vec<&str> = parts[1].split(")").collect();
+
+        if parts1.len() != 4 {
+            return Err(AppError::InvalidListLine(line.to_string()).into());
+        }
+
         let (_, crate_url) = Self::parse_md_link(format!("{})", parts1[0]).as_str())?;
         let (source_type, source_url) = Self::parse_md_link(format!("{})", parts1[1]).as_str())?;
         let (stars, downloads) = Self::parse_stats(format!("{})", parts1[2]).as_str())?;
@@ -702,11 +737,15 @@ impl MarkdownListFormatter {
             let s = mat.get(0);
             if let Some(s) = s {
                 if !start_flag {
-                    if !s.as_str().contains("#") {
+                    if s.as_str().starts_with("##") {
+                        // the ## is the sub-header
                         continue;
                     }
-                    start_flag = true;
-                    start_header_pos = s.start();
+
+                    if s.as_str().starts_with("#") {
+                        start_flag = true;
+                        start_header_pos = s.start();
+                    }
                 }
                 matches_len += 1;
                 end_header_pos = s.start();
@@ -721,7 +760,14 @@ impl MarkdownListFormatter {
             return None;
         }
 
+        // TODO: 这里需要处理换行符等问题
+        // 关键错误点
+        // 1. 字节偏移与字符长度的混淆
+        // line.len() 返回的是 字节数 而非 字符数，而 ✅ (U+2705) 是 3 字节的 Unicode 字符，导致偏移计算错误。
+        // 2. 换行符处理遗漏
+        // lines() 方法会 自动去除换行符，但原始内容中的换行符（\n 或 \r\n）占用实际字节，导致 offset 累计值与真实字节位置不匹配。
         let last_content = &content[end_header_pos..];
+
         let mut lines = last_content.lines();
         let sub_header = lines.next()?; // skip the first line (sub-header line)
 
@@ -731,7 +777,6 @@ impl MarkdownListFormatter {
         offset += sub_header.len();
         for line in lines {
             if line.is_empty() {
-                offset += line.len();
                 continue;
             }
 
@@ -757,7 +802,7 @@ impl Formatter for MarkdownListFormatter {
     fn format(&self, deps: &[DependencyInfo]) -> Result<String> {
         let mut output = String::new();
         output.push_str(&format!(
-            "{}\n\n",
+            "\n{}\n",
             MarkdownListFormatter::get_header().as_ref()
         ));
 
@@ -796,6 +841,7 @@ impl Formatter for MarkdownListFormatter {
         // 2. find the DependencyKind row and store it into a variable to pass to the next step
         // 3. parse the markdown table row into DependencyInfo struct
         let first_md_list = MarkdownListFormatter::get_first_md_list(content);
+        dbg!(&first_md_list);
         if first_md_list.is_none() {
             return Ok(vec![]);
         }
@@ -883,28 +929,29 @@ impl Formatter for YamlFormatter {
 pub struct CsvFormatter;
 
 impl CsvFormatter {
-    fn get_header(&self) -> impl AsRef<str> {
+    fn get_header() -> impl AsRef<str> {
         t!("output.csv_header").replace("，", ",")
     }
 
-    fn column_num(&self) -> usize {
-        self.get_header().as_ref().split(",").count()
+    fn column_num() -> usize {
+        CsvFormatter::get_header().as_ref().split(",").count()
     }
 }
 
 impl Formatter for CsvFormatter {
     fn format(&self, deps: &[DependencyInfo]) -> Result<String> {
-        let header = self.get_header();
+        let header = CsvFormatter::get_header();
         let mut output = String::new();
-        output.push_str(&format!("{}\n", header.as_ref()));
+        output.push_str(&format!("\n{}\n", header.as_ref()));
 
         for dep in deps {
-            let (name, description, crates_link, source_link, stats, failed) = dep.to_strings();
+            let (name, description, crates_link, source_link, stats, status) = dep.to_strings();
+            let description = description.replace(",", ";");
             let dependency_kind = dep.dependency_kind.to_string();
 
             output.push_str(&format!(
                 "{},{},{},{},{},{},{}\n",
-                name, description, dependency_kind, crates_link, source_link, stats, failed,
+                name, description, dependency_kind, crates_link, source_link, stats, status,
             ));
         }
 
@@ -912,7 +959,8 @@ impl Formatter for CsvFormatter {
     }
 
     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>> {
-        let mut lines = content.lines();
+        let mut lines = content.lines().filter(|line| !line.trim().is_empty()); // skip empty lines
+
         let header = lines.next();
 
         if header.is_none() {
@@ -922,7 +970,7 @@ impl Formatter for CsvFormatter {
         let columns = header.unwrap().split(",").collect::<Vec<_>>();
         let column_num = columns.len();
 
-        if column_num != self.column_num() {
+        if column_num != CsvFormatter::column_num() {
             return Err(AppError::InvalidCsvContent(content.to_string()).into());
         }
 
@@ -1319,6 +1367,42 @@ mod tests {
     }
 
     #[test]
+    fn test_try_from_csv_line_zh() -> Result<()> {
+        rust_i18n::set_locale("zh");
+        const LINE: &str = "serde,serde 是一个强大的数据序列化框架;用于 Rust，普通，[crates.io](https://crates.io/crates/serde),[GitHub](https://github.com/serde-rs/serde),🌟 1000,✅,";
+        let line = LINE.replace("，", ",");
+
+        let header_num = line.split(",").count();
+
+        let dep = DependencyInfo::try_from_csv_line(&line, header_num)?;
+        assert_eq!(dep.name, "serde");
+        assert_eq!(
+            dep.description,
+            Some(
+                "serde 是一个强大的数据序列化框架，用于 Rust"
+                    .replace("，", ",")
+                    .to_string()
+            )
+        );
+        assert_eq!(dep.dependency_kind, DependencyKind::Normal);
+        assert_eq!(
+            dep.crate_url,
+            Some("https://crates.io/crates/serde".to_string())
+        );
+        assert_eq!(dep.source_type, "GitHub");
+        assert_eq!(
+            dep.source_url,
+            Some("https://github.com/serde-rs/serde".to_string())
+        );
+        assert_eq!(dep.stats.stars, Some(1000));
+        assert_eq!(dep.stats.downloads, None);
+        assert!(!dep.failed);
+        assert_eq!(dep.error_message, None);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_try_from_md_list_line() -> Result<()> {
         const LINE: &str = "- serde : serde is a powerful data serialization framework for Rust - [serde](https://crates.io/crates/serde) [GitHub](https://github.com/serde-rs/serde) (🌟 1000 📦 100) ✅";
 
@@ -1340,6 +1424,54 @@ mod tests {
         );
         assert_eq!(dep.stats.stars, Some(1000));
         assert_eq!(dep.stats.downloads, Some(100));
+        assert!(!dep.failed);
+        assert_eq!(dep.error_message, None);
+
+        let test_line = "- anyhow : Flexible concrete Error type built on std::error::Error - [anyhow](https://crates.io/crates/anyhow) [GitHub](https://github.com/dtolnay/anyhow) (❓) ✅";
+        let dep = DependencyInfo::try_from_md_list_line(test_line, &DependencyKind::Development)?;
+        assert_eq!(dep.name, "anyhow");
+        assert_eq!(
+            dep.description,
+            Some("Flexible concrete Error type built on std::error::Error".to_string())
+        );
+        assert_eq!(dep.dependency_kind, DependencyKind::Development);
+        assert_eq!(
+            dep.crate_url,
+            Some("https://crates.io/crates/anyhow".to_string())
+        );
+        assert_eq!(dep.source_type, "GitHub");
+        assert_eq!(
+            dep.source_url,
+            Some("https://github.com/dtolnay/anyhow".to_string())
+        );
+        assert_eq!(dep.stats.stars, None);
+        assert_eq!(dep.stats.downloads, None);
+        assert!(!dep.failed);
+        Ok(())
+    }
+
+    #[test]
+    fn test_try_from_md_table_line() -> Result<()> {
+        const LINE: &str = "| anyhow | Flexible concrete Error type built on std::error::Error | [anyhow](https://crates.io/crates/anyhow) | [GitHub](https://github.com/dtolnay/anyhow) | ❓ | ✅ |";
+
+        let dep = DependencyInfo::try_from_md_table_line(LINE, &DependencyKind::Normal)?;
+        assert_eq!(dep.name, "anyhow");
+        assert_eq!(
+            dep.description,
+            Some("Flexible concrete Error type built on std::error::Error".to_string())
+        );
+        assert_eq!(dep.dependency_kind, DependencyKind::Normal);
+        assert_eq!(
+            dep.crate_url,
+            Some("https://crates.io/crates/anyhow".to_string())
+        );
+        assert_eq!(dep.source_type, "GitHub");
+        assert_eq!(
+            dep.source_url,
+            Some("https://github.com/dtolnay/anyhow".to_string())
+        );
+        assert_eq!(dep.stats.stars, None);
+        assert_eq!(dep.stats.downloads, None);
         assert!(!dep.failed);
         assert_eq!(dep.error_message, None);
 
@@ -1393,5 +1525,62 @@ mod tests {
         assert!(md_list_content.is_some());
         dbg!(md_list_content.unwrap());
         Ok(())
+    }
+
+    #[test]
+    fn test_parse_md_table() -> Result<()> {
+        let content = std::fs::read_to_string("./assets/output/THANKU_table_en.md")?;
+        let deps = MarkdownTableFormatter.parse(&content)?;
+        let mut output = Vec::new(); // Change String to Vec<u8>
+        let mut manager = OutputManager::new(OutputFormat::Csv, &mut output); // Pass &mut output
+        manager.write(&deps)?;
+        let output_str = String::from_utf8(output).unwrap();
+        // std::fs::write("./assets/output/THANKU_table_parsed.csv", &output_str)?;
+        assert_eq!(output_str, content);
+        Ok(())
+    }
+
+    // TODO: 测试列表解析
+    #[test]
+    fn test_parse_md_list() -> Result<()> {
+        let content = std::fs::read_to_string("./assets/output/THANKU_list_en.md")?;
+        let deps = MarkdownListFormatter.parse(&content)?;
+        let mut output = Vec::new(); // Change String to Vec<u8>
+        let mut manager = OutputManager::new(OutputFormat::MarkdownList, &mut output); // Pass &mut output
+        manager.write(&deps)?;
+        let output_str = String::from_utf8(output).unwrap();
+        std::fs::write("./assets/output/THANKU_list_parsed.md", &output_str)?;
+        assert_eq!(output_str, content);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_csv() -> Result<()> {
+        rust_i18n::set_locale("en");
+        let content = std::fs::read_to_string("./assets/output/THANKU_en.csv")?;
+        let deps = CsvFormatter.parse(&content)?;
+        let mut output = Vec::new(); // Change String to Vec<u8>
+        let mut manager = OutputManager::new(OutputFormat::Csv, &mut output); // Pass &mut output
+        manager.write(&deps)?;
+        let output_str = String::from_utf8(output).unwrap();
+        // std::fs::write("./assets/output/THANKU_table_parsed2.csv", &output_str)?;
+        assert_eq!(output_str, content);
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: Invalid dependency kind: normal"
+    )]
+    fn test_parse_csv_failed() {
+        rust_i18n::set_locale("zh");
+        let content = std::fs::read_to_string("./assets/output/THANKU_en.csv").unwrap();
+        let deps = CsvFormatter.parse(&content).unwrap();
+        let mut output = Vec::new(); // Change String to Vec<u8>
+        let mut manager = OutputManager::new(OutputFormat::Csv, &mut output); // Pass &mut output
+        manager.write(&deps).unwrap();
+        let output_str = String::from_utf8(output).unwrap();
+        // std::fs::write("./assets/output/THANKU_table_parsed2.csv", &output_str)?;
+        assert_eq!(output_str, content);
     }
 }
