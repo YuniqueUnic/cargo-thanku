@@ -622,7 +622,6 @@ impl Formatter for MarkdownTableFormatter {
         Ok(output)
     }
 
-    // TODO: 实现解析
     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>> {
         // 1. find the markdown table header and separator
         // 2. find the DependencyKind row and store it into a variable to pass to the next step
@@ -792,7 +791,6 @@ impl Formatter for MarkdownListFormatter {
         Ok(output)
     }
 
-    // TODO: 实现解析
     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>> {
         // 1. find the markdown list header and separator
         // 2. find the DependencyKind row and store it into a variable to pass to the next step
@@ -829,8 +827,13 @@ impl Formatter for MarkdownListFormatter {
                 _ => {}
             };
 
-            let dep = DependencyInfo::try_from_md_list_line(line, &dependency_kind)?;
-            deps.push(dep);
+            let dep = DependencyInfo::try_from_md_list_line(line, &dependency_kind);
+            if let Ok(dep) = dep {
+                deps.push(dep);
+            } else {
+                tracing::warn!("{}", t!("output.failed_to_parse_list_line", line = line));
+                continue;
+            }
         }
 
         Ok(deps)
