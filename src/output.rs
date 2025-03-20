@@ -84,22 +84,24 @@ impl From<cargo_metadata::DependencyKind> for DependencyKind {
 }
 
 impl DependencyKind {
-    pub fn to_md_table_header(&self) -> &str {
+    pub fn to_md_table_header(&self) -> impl AsRef<str> {
         match self {
-            DependencyKind::Normal => "|🔍|Normal| | | | |\n",
-            DependencyKind::Development => "|🔧|Development| | | | |\n",
-            DependencyKind::Build => "|🔨|Build| | | | |\n",
-            DependencyKind::Unknown => "|❓|Unknown| | | | |\n",
+            DependencyKind::Normal => "|🔍|Normal| | | | |",
+            DependencyKind::Development => "|🔧|Development| | | | |",
+            DependencyKind::Build => "|🔨|Build| | | | |",
+            DependencyKind::Unknown => "|❓|Unknown| | | | |",
         }
     }
 
-    pub fn to_md_list_header(&self) -> Cow<'_, str> {
-        match self {
+    pub fn to_md_list_header(&self) -> impl AsRef<str> {
+        let s = match self {
             DependencyKind::Normal => t!("output.normal"),
             DependencyKind::Development => t!("output.development"),
             DependencyKind::Build => t!("output.build"),
             DependencyKind::Unknown => t!("output.unknown"),
-        }
+        };
+
+        format!("## {}", s)
     }
 }
 
@@ -391,6 +393,27 @@ pub trait Formatter {
 pub struct MarkdownTableFormatter;
 
 impl MarkdownTableFormatter {
+    fn get_header(&self) -> impl AsRef<str> {
+        format!(
+            "| {} | {} | {} | {} | {} | {} |",
+            t!("output.name"),
+            t!("output.description"),
+            t!("output.crates_link"),
+            t!("output.source_link"),
+            t!("output.stats"),
+            t!("output.status")
+        )
+    }
+
+    fn get_column_num(&self) -> usize {
+        self.get_header().as_ref().split('|').count() - 2
+    }
+
+    fn get_separator(&self) -> impl AsRef<str> {
+        let column_num = self.get_column_num();
+        format!("|{}", "---|".repeat(column_num))
+    }
+
     /// 从文本内容中提取第一个合法的 Markdown 表格
     ///
     /// # 参数
@@ -527,16 +550,8 @@ impl Formatter for MarkdownTableFormatter {
         let mut output = String::new();
 
         // 表头
-        output.push_str(&format!(
-            "\n| {} | {} | {} | {} | {} | {} |\n",
-            t!("output.name"),
-            t!("output.description"),
-            t!("output.crates_link"),
-            t!("output.source_link"),
-            t!("output.stats"),
-            t!("output.status")
-        ));
-        output.push_str("|------|--------|--------|-------|-------|--------|\n");
+        output.push_str(&format!("\n{}\n", self.get_header().as_ref()));
+        output.push_str(&format!("{}\n", self.get_separator().as_ref()));
 
         let dep_kind_order = vec![
             DependencyKind::Normal,
@@ -553,7 +568,7 @@ impl Formatter for MarkdownTableFormatter {
 
             for dep in deps {
                 if show_header {
-                    output.push_str(header);
+                    output.push_str(&format!("{}\n", header.as_ref()));
                     show_header = false;
                 }
                 let (name, description, crates_link, source_link, stats, status) = dep.to_strings();
@@ -586,19 +601,21 @@ impl Formatter for MarkdownTableFormatter {
         for line in md_table.lines().skip(2) {
             let line = line.trim();
             match line {
-                line if line.contains(DependencyKind::Normal.to_md_table_header()) => {
+                line if line.contains(DependencyKind::Normal.to_md_table_header().as_ref()) => {
                     dependency_kind = DependencyKind::Normal;
                     continue;
                 }
-                line if line.contains(DependencyKind::Development.to_md_table_header()) => {
+                line if line
+                    .contains(DependencyKind::Development.to_md_table_header().as_ref()) =>
+                {
                     dependency_kind = DependencyKind::Development;
                     continue;
                 }
-                line if line.contains(DependencyKind::Build.to_md_table_header()) => {
+                line if line.contains(DependencyKind::Build.to_md_table_header().as_ref()) => {
                     dependency_kind = DependencyKind::Build;
                     continue;
                 }
-                line if line.contains(DependencyKind::Unknown.to_md_table_header()) => {
+                line if line.contains(DependencyKind::Unknown.to_md_table_header().as_ref()) => {
                     dependency_kind = DependencyKind::Unknown;
                     continue;
                 }
@@ -628,10 +645,19 @@ fn take_sort_dependencies<'a>(
 /// Markdown 列表格式化器
 pub struct MarkdownListFormatter;
 
+impl MarkdownListFormatter {
+    fn get_header(&self) -> impl AsRef<str> {
+        format!("# {}", t!("output.dependencies"))
+    }
+    fn get_first_md_list(content: &str) -> Option<&str> {
+        None
+    }
+}
+
 impl Formatter for MarkdownListFormatter {
     fn format(&self, deps: &[DependencyInfo]) -> Result<String> {
         let mut output = String::new();
-        output.push_str(&format!("# {}\n\n", t!("output.dependencies")));
+        output.push_str(&format!("{}\n\n", self.get_header().as_ref()));
 
         let dep_kind_order = vec![
             DependencyKind::Normal,
@@ -648,7 +674,7 @@ impl Formatter for MarkdownListFormatter {
 
             for dep in deps {
                 if show_header {
-                    output.push_str(&format!("\n## {}\n", header));
+                    output.push_str(&format!("\n{}\n", header.as_ref()));
                     show_header = false;
                 }
                 let (name, description, crates_link, source_link, stats, status) = dep.to_strings();
@@ -665,7 +691,46 @@ impl Formatter for MarkdownListFormatter {
 
     // TODO: 实现解析
     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>> {
-        Ok(vec![])
+        // 1. find the markdown list header and separator
+        // 2. find the DependencyKind row and store it into a variable to pass to the next step
+        // 3. parse the markdown table row into DependencyInfo struct
+        let first_md_list = MarkdownListFormatter::get_first_md_list(content);
+        if first_md_list.is_none() {
+            return Ok(vec![]);
+        }
+
+        let md_list = first_md_list.unwrap();
+
+        let mut deps = vec![];
+        let mut dependency_kind = DependencyKind::Unknown;
+        // skip the first two lines (header and separator)
+        for line in md_list.lines() {
+            let line = line.trim();
+            match line {
+                line if line.contains(DependencyKind::Normal.to_md_list_header().as_ref()) => {
+                    dependency_kind = DependencyKind::Normal;
+                    continue;
+                }
+                line if line.contains(DependencyKind::Development.to_md_list_header().as_ref()) => {
+                    dependency_kind = DependencyKind::Development;
+                    continue;
+                }
+                line if line.contains(DependencyKind::Build.to_md_list_header().as_ref()) => {
+                    dependency_kind = DependencyKind::Build;
+                    continue;
+                }
+                line if line.contains(DependencyKind::Unknown.to_md_list_header().as_ref()) => {
+                    dependency_kind = DependencyKind::Unknown;
+                    continue;
+                }
+                _ => {}
+            };
+
+            let dep = DependencyInfo::try_from_md_list_line(line, &dependency_kind)?;
+            deps.push(dep);
+        }
+
+        Ok(deps)
     }
 }
 
@@ -712,12 +777,12 @@ impl Formatter for YamlFormatter {
 pub struct CsvFormatter;
 
 impl CsvFormatter {
-    fn get_header(&self) -> String {
+    fn get_header(&self) -> impl AsRef<str> {
         t!("output.csv_header").replace("，", ",")
     }
 
     fn column_num(&self) -> usize {
-        self.get_header().split(",").count()
+        self.get_header().as_ref().split(",").count()
     }
 }
 
@@ -725,7 +790,7 @@ impl Formatter for CsvFormatter {
     fn format(&self, deps: &[DependencyInfo]) -> Result<String> {
         let header = self.get_header();
         let mut output = String::new();
-        output.push_str(&format!("{}\n", header));
+        output.push_str(&format!("{}\n", header.as_ref()));
 
         for dep in deps {
             let (name, description, crates_link, source_link, stats, failed) = dep.to_strings();
@@ -1047,6 +1112,15 @@ mod tests {
         assert!(content.contains("🌟 1000"));
         assert!(content.contains("Normal"));
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_md_table_func() -> Result<()> {
+        let header = MarkdownTableFormatter.get_header();
+        let column_num = MarkdownTableFormatter.get_column_num();
+        let separator = MarkdownTableFormatter.get_separator();
+        dbg!(header.as_ref(), column_num, separator.as_ref());
         Ok(())
     }
 
