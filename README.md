@@ -62,6 +62,35 @@ cargo thanku -v
 cargo thanku --no-relative-libs
 ```
 
+### Format Conversion
+
+Convert between different output formats:
+
+```bash
+# Do support `cargo thanku convert` syntax to invoke converter 
+# Convert a single file to multiple formats
+cargo thanku convert input.md -o markdown-table,json,yaml
+
+# Short command aliases
+cargo thanku cvt input.md -o toml,yaml
+cargo thanku conv input.md -o json
+cargo thanku convt input.md -o markdown-list
+```
+
+The converter will:
+- Create a `converted` directory in the same location as the input file
+- Generate output files with appropriate extensions
+- Support conversion between all supported formats (markdown-table, markdown-list, json, toml, yaml)
+
+#### Command-Line Arguments
+  
+| Argument            | Description                                        | Default Value     |
+|---------------------|----------------------------------------------------|-------------------|
+| `-i, --input`       | Input Cargo.toml file path                         | -                 |
+| `-o, --outputs`     | Output file formats                                | -                 |
+| `-l, --language`    | Language (zh/en/ja/ko/es/fr/de/it)                 | `zh`              |
+| `-v, --verbose`     | Enable verbose logging                             | `false`           |
+
 ### Command-Line Completion
 
 Generate command-line completion scripts for various shells:

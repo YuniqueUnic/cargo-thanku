@@ -117,7 +117,7 @@ impl Config {
 
         let format = matches
             .get_one::<String>("format")
-            .map(|t| t.parse::<OutputFormat>().unwrap_or_default())
+            .map(|f| f.parse::<OutputFormat>().unwrap_or_default())
             .unwrap_or_default();
 
         let link_source = matches

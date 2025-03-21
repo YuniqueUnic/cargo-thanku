@@ -17,6 +17,24 @@ pub enum OutputFormat {
     Yaml,
 }
 
+impl OutputFormat {
+    pub fn to_identifier(&self) -> &str {
+        match self {
+            Self::MarkdownTable => "mt",
+            Self::MarkdownList => "ml",
+            _ => "",
+        }
+    }
+    pub fn to_extension(&self) -> &str {
+        match self {
+            Self::MarkdownTable => "md",
+            Self::MarkdownList => "md",
+            Self::Csv => "csv",
+            Self::Json => "json",
+            Self::Yaml => "yaml",
+        }
+    }
+}
 impl std::fmt::Display for OutputFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_string())

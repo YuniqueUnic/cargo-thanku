@@ -62,6 +62,35 @@ cargo thanku -v
 cargo thanku --no-relative-libs
 ```
 
+### 格式转换
+
+在不同的输出格式之间进行转换：
+
+```bash
+# 不支持 cargo thanku convert 模式语法调用
+# 将单个文件转换为多种格式
+cargo-thanku convert input.md -o markdown-table,json,yaml
+
+# 简短的命令别名
+cargo-thanku cvt input.md -o toml,yaml
+cargo-thanku conv input.md -o json
+cargo-thanku convt input.md -o markdown-list
+```
+
+转换器将：
+- 在与输入文件相同的目录下创建一个 `converted` 目录
+- 生成带有适当扩展名的输出文件
+- 支持所有受支持格式之间的转换 (markdown-table, markdown-list, json, toml, yaml)
+
+#### 命令行参数
+
+| 参数               | 描述                                       | 默认值    |
+|--------------------|--------------------------------------------|-----------|
+| `-i, --input`      | 输入 Cargo.toml 文件路径                   | -         |
+| `-o, --outputs`    | 输出文件格式                               | -         |
+| `-l, --language`   | 语言 (zh/en/ja/ko/es/fr/de/it)             | `zh`      |
+| `-v, --verbose`    | 启用详细日志记录                           | `false`   |
+
 ### 命令行补全
 
 为不同的 shell 生成命令行补全脚本：

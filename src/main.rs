@@ -117,13 +117,21 @@ fn handle_convert(matches: &clap::ArgMatches) -> Result<()> {
     std::fs::create_dir_all(&output_dir)?;
 
     let outputs = matches
-        .get_many::<OutputFormat>("outputs")
-        .ok_or_else(|| anyhow::anyhow!(t!("main.convert_outputs_required")))?;
+        .get_many::<String>("outputs")
+        .unwrap_or_default()
+        .into_iter()
+        .map(|format| format.parse::<OutputFormat>().unwrap_or_default())
+        .collect::<Vec<_>>();
 
     let outputs: Vec<PathBuf> = outputs
         .into_iter()
         .map(|format| {
-            let path = output_dir.join(format!("{}.{}", name, format));
+            let path = output_dir.join(format!(
+                "{}_{}.{}",
+                name,
+                format.to_identifier(),
+                format.to_extension()
+            ));
             path
         })
         .collect();
