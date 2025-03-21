@@ -44,8 +44,11 @@ jobs:
       # - name: Clippy
       #   run: cargo clippy -- -D warnings
 
-      - name: Run tests
-        run: cargo test --verbose
+      - name: Run tests filter zh
+        run: cargo test --verbose -- --skip _zh --include-ignored
+
+      - name: Run tests filter en
+        run: cargo test --verbose -- --skip _en --include-ignored
 
       - name: Build
         run: cargo build --verbose

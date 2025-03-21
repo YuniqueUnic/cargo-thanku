@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::path::{Path, PathBuf};
 
-use crate::output::{DependencyInfo, OutputFormat};
+use crate::output::{self, OutputFormat};
 
 #[derive(Debug, Clone)]
 pub struct Travert {
@@ -9,6 +9,7 @@ pub struct Travert {
     pub format: OutputFormat,
 }
 
+#[allow(dead_code)]
 impl Travert {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         Ok(Self {
@@ -22,25 +23,6 @@ impl Travert {
             path: path.as_ref().to_path_buf(),
             format,
         }
-    }
-
-    /// TODO: 解析内容，并且转化为 DependencyInfo
-    pub fn parse(&self) -> Result<DependencyInfo> {
-        let content = std::fs::read_to_string(&self.path)?;
-        let format = self.format;
-
-        let dependency_info = match format {
-            OutputFormat::MarkdownTable => {
-                let dependency_info = DependencyInfo::default();
-                dependency_info
-            }
-            _ => anyhow::bail!(t!(
-                "travert.failed_to_parse_content",
-                path = self.path.display()
-            )),
-        };
-
-        Ok(dependency_info)
     }
 
     /// 判断是 markdown 表格还是 markdown 列表
@@ -83,7 +65,7 @@ impl Travert {
         let path = path.as_ref();
 
         if path.is_file() {
-            let extension = path.extension().unwrap_or_default();
+            let extension = path.extension().unwrap_or_default().to_ascii_lowercase();
 
             return match extension.to_str() {
                 Some("md") => {
@@ -91,7 +73,8 @@ impl Travert {
                     Self::detect_markdown_content_format(&content)
                 }
                 Some("csv") => Ok(OutputFormat::Csv),
-                Some("toml") => Ok(OutputFormat::Toml),
+                // Some("toml") => Ok(OutputFormat::Toml),
+                Some("yml") => Ok(OutputFormat::Yaml),
                 Some("yaml") => Ok(OutputFormat::Yaml),
                 Some("json") => Ok(OutputFormat::Json),
                 _ => anyhow::bail!(t!("travert.failed_to_judge_format", path = path.display())),
@@ -105,28 +88,50 @@ impl Travert {
 #[derive(Debug, Clone)]
 pub struct Converter {
     pub source: Travert,
-    pub target: Vec<Travert>,
+    pub targets: Vec<Travert>,
 }
 
 impl Converter {
-    pub fn new<P: AsRef<Path>>(source: P, target: &[P]) -> Result<Self> {
+    pub fn new<P: AsRef<Path>>(source: P, targets: impl IntoIterator<Item = P>) -> Result<Self> {
         Ok(Self {
             source: Travert::new(source)?,
-            target: target
-                .iter()
+            targets: targets
+                .into_iter()
                 .map(|p| Travert::new(p))
                 .collect::<Result<Vec<_>>>()?,
         })
     }
 
+    #[allow(dead_code)]
     pub fn new_with_format(source: Travert, target: Vec<Travert>) -> Result<Self> {
-        Ok(Self { source, target })
+        Ok(Self {
+            source,
+            targets: target,
+        })
     }
 
-    // TODO: 实现转换
     pub fn convert(&self) -> Result<()> {
         let source_content = std::fs::read_to_string(&self.source.path)?;
-        let source_format = self.source.format;
+
+        let formatter = <dyn output::Formatter>::new(self.source.format)?;
+        let dependencies_info = formatter.parse(&source_content)?;
+
+        // 预生成所有目标格式内容
+        let outputs: Result<Vec<_>> = self
+            .targets
+            .iter()
+            .map(|target| {
+                let mut buffer = Vec::new();
+                let mut manager = output::OutputManager::new(target.format, &mut buffer);
+                manager.write(&dependencies_info)?;
+                Ok((&target.path, buffer))
+            })
+            .collect();
+
+        // 批量写入（减少系统调用次数）
+        for (path, data) in outputs? {
+            std::fs::write(path, data)?;
+        }
 
         Ok(())
     }

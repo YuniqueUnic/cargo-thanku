@@ -196,6 +196,45 @@ main:
     fr: "❌ Le format de sortie %{format} n'est pas encore implémenté"
     de: "❌ Das Ausgabeformat %{format} ist noch nicht implementiert"
     it: "❌ Il formato di output %{format} non è ancora implementato"
+  convert_input_required:
+    zh: "❌ 输入文件路径是必填的"
+    en: "❌ Input file path is required"
+    ja: "❌ 入力ファイルのパスは必須です"
+    ko: "❌ 입력 파일의 경로는 필수입니다"
+    es: "❌ La ruta del archivo de entrada es requerida"
+    fr: "❌ Le chemin du fichier d'entrée est requis"
+    de: "❌ Der Eingabedatei-Pfad ist erforderlich"
+    it: "❌ Il percorso del file di input è obbligatorio"
+  convert_outputs_required:
+    zh: "❌ 输出文件路径是必填的"
+    en: "❌ Output file path is required"
+    ja: "❌ 出力ファイルのパスは必須です"
+    ko: "❌ 출력 파일의 경로는 필수입니다"
+    es: "❌ La ruta del archivo de salida es requerida"
+    fr: "❌ Le chemin du fichier de sortie est requis"
+    de: "❌ Der Ausgabedatei-Pfad ist erforderlich"
+    it: "❌ Il percorso del file di output è obbligatorio"
+  convert_input_not_file:
+    zh: "❌ 输入文件路径不是文件或者文件不存在"
+    en: "❌ Input file path is not a file or file does not exist"
+    ja: "❌ 入力ファイルのパスはファイルではないか、ファイルが存在しません"
+    ko: "❌ 입력 파일의 경로는 파일이 아니거나 파일이 존재하지 않습니다"
+    es: "❌ La ruta del archivo de entrada no es un archivo o el archivo no existe"
+    fr: "❌ Le chemin du fichier d'entrée n'est pas un fichier ou le fichier n'existe pas"
+    de: "❌ Der Eingabedatei-Pfad ist kein Datei oder das Datei existiert nicht"
+    it: "❌ Il percorso del file di input non è un file o il file non esiste"
+  convert_invalid_filename:
+    zh: "❌ 输入文件路径不存在有效的文件名"
+    en: "❌ Input file path does not exist a valid filename"
+    ja: "❌ 入力ファイルのパスは有効なファイル名ではありません"
+    ko: "❌ 입력 파일의 경로는 유효한 파일 이름이 아닙니다"
+    es: "❌ La ruta del archivo de entrada no existe un nombre de archivo válido"
+    fr: "❌ Le chemin du fichier d'entrée n'existe pas un nom de fichier valide"
+    de: "❌ Der Eingabedatei-Pfad existiert nicht mit einem gültigen Dateinamen"
+    it: "❌ Il percorso del file di input non esiste un nome di file valido"
+
+
+
 
 cli:
   about:
@@ -315,12 +354,38 @@ cli:
     fr: Token d'authentification GitHub (nécessaire pour les opérations GitHub)
     de: GitHub-Authentifizierungstoken (erforderlich für GitHub-Operationen)
     it: Token di autenticazione GitHub (necessario per le operazioni GitHub)
+  convert_help:
+    zh: 转换格式，将输入文件转换为指定格式们
+    en: Convert format, convert the input file to the specified formats
+    ja: 出力形式を変換，入力ファイルを指定された形式に変換
+    ko: 출력 형식 변환, 입력 파일을 지정된 형식으로 변환
+    es: Convertir formato, convertir el archivo de entrada al formato especificado
+    fr: Convertir le format, convertir le fichier d'entrée au format spécifié
+    de: Ausgabeformat konvertieren, das Eingabedatei in das angegebene Format konvertieren
+    it: Convertire il formato, convertire il file di input nel formato specificato
+  convert_input_help:
+    zh: 输入文件路径
+    en: Input file path
+    ja: 入力ファイルのパス
+    ko: 입력 파일의 경로
+    es: ruta del archivo de entrada
+    fr: chemin du fichier d'entrée
+    de: Eingabedatei-Pfad
+    it: percorso del file di input
+  convert_outputs_help:
+    zh: 输出文件们的格式，使用逗号分隔
+    en: Output file formats, separated by commas
+    ja: 出力ファイルの形式，カンマで区切る
+    ko: 출력 파일의 형식, 쉼표로 구분
+    es: formatos del archivo de salida, separados por comas
+    fr: formats du fichier de sortie, séparés par des virgules
+    de: Ausgabeformate, getrennt durch Kommas
+    it: formati del file di output, separati da virgole
   crates_token:
     zh: crates.io 认证令牌
     en: crates.io authentication token
     ja: crates.io 認証トークン
     ko: crates.io 인증 토큰
-    es: Token de autenticación de crates.io
     fr: Token d'authentification crates.io
     de: crates.io-Authentifizierungstoken
     it: Token di autenticazione crates.io
@@ -433,6 +498,15 @@ cli:
     fr: "Type de shell invalide: %{shell}"
     de: "Ungültiger Shell-Typ: %{shell}"
     it: "Tipo di shell non valido: %{shell}"
+  invalid_output_format:
+    zh: "无效的输出格式：%{format}"
+    en: "Invalid output format: %{format}"
+    ja: "無効な出力形式：%{format}"
+    ko: "유효하지 않은 출력 형식：%{format}"
+    es: "Formato de salida inválido: %{format}"
+    fr: "Format de sortie invalide: %{format}"
+    de: "Ungültiges Ausgabeformat: %{format}"
+    it: "Formato di output non valido: %{format}"
 
 sources:
   failed_to_create_http_client:
@@ -604,6 +678,15 @@ output:
     fr: nom,description,type de dépendance,lien de crates.io,lien de source,statistiques,statut
     de: Name,Beschreibung,Abhängigkeitstyp,crates.io-Link,Quellentyp,Quellenlink,Sterne,Downloads,Fehler,Fehlermeldung
     it: nome,descrizione,tipo di dipendenza,link di crates.io,link di fonte,statistiche,stato
+  invalid_dependency_kind:
+    zh: "❌ 无效的依赖类型：%{kind}\n请确认目标语言设置正确 -l [zh|en|ja|ko|es|fr|de|it]"
+    en: "❌ Invalid dependency kind: %{kind}\nPlease confirm the target language is set correctly -l [zh|en|ja|ko|es|fr|de|it]"
+    ja: "❌ 無効な依存関係の種類：%{kind}\nターゲット言語が正しく設定されていることを確認してください -l [zh|en|ja|ko|es|fr|de|it]"
+    ko: "❌ 유효하지 않은 종속성 유형：%{kind}\n대상 언어가 올바르게 설정되어 있는지 확인하세요 -l [zh|en|ja|ko|es|fr|de|it]"
+    es: "❌ Tipo de dependencia inválido: %{kind}\nPor favor, confirme que el idioma objetivo está configurado correctamente -l [zh|en|ja|ko|es|fr|de|it]"
+    fr: "❌ Type de dépendance invalide: %{kind}\nVeuillez confirmer que le langage cible est correctement configuré -l [zh|en|ja|ko|es|fr|de|it]"
+    de: "❌ Ungültiger Abhängigkeitstyp: %{kind}\nBitte bestätigen Sie, dass das Zielsprache korrekt eingestellt ist -l [zh|en|ja|ko|es|fr|de|it]"
+    it: "❌ Tipo di dipendenza non valido: %{kind}\nPer favore conferma che il linguaggio di destinazione è impostato correttamente -l [zh|en|ja|ko|es|fr|de|it]"
   failed_to_parse_list_line:
     zh: "❌ 无法解析列表行：%{line}"
     en: "❌ Failed to parse list line: %{line}"
@@ -703,6 +786,15 @@ output:
     fr: "❌ Impossible d'analyser la ligne de liste: %{line}"
     de: "❌ Die Listzeile konnte nicht analysiert werden: %{line}"
     it: "❌ La riga di lista non può essere analizzata: %{line}"
+  no_valid_list_items_found:
+    zh: "❌ 未找到有效的列表项"
+    en: "❌ No valid list items found"
+    ja: "❌ 有効なリスト項目が見つかりません"
+    ko: "❌ 유효한 목록 항목이 없습니다"
+    es: "❌ No se encontraron elementos de lista válidos"
+    fr: "❌ Aucun élément de liste valide trouvé"
+    de: "❌ Keine gültigen Listenelemente gefunden"
+    it: "❌ Nessun elemento di lista valido trovato"
 
 travert:
   failed_to_judge_format:

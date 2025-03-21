@@ -10,12 +10,13 @@ use cargo_metadata::MetadataCommand;
 use output::{DependencyKind, OutputFormat};
 use rust_i18n::t;
 use tracing::{Level, debug, info, instrument};
+use travert::Converter;
 use url::Url;
 
 use futures::future::join_all;
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+use std::{collections::HashMap, path::PathBuf};
 use tokio::sync::Semaphore;
 
 use crate::{
@@ -70,7 +71,68 @@ async fn main() -> Result<()> {
         }
     }
 
+    if let Some(matches) = matches.subcommand_matches("convert") {
+        handle_convert(&matches)?;
+        return Ok(());
+    }
+
     process_dependencies().await
+}
+
+fn handle_convert(matches: &clap::ArgMatches) -> Result<()> {
+    let input = matches
+        .get_one::<PathBuf>("input")
+        .ok_or_else(|| anyhow::anyhow!(t!("main.convert_input_required")))?;
+
+    if !input.is_file() {
+        return Err(anyhow::anyhow!(t!("main.convert_input_not_file")));
+    }
+
+    // 使用 Path 方法安全获取文件名和扩展名
+    let (name, _ext) = input
+        .file_name()
+        .and_then(|n| n.to_str())
+        .map(|_| {
+            let stem = input
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default();
+
+            let ext = input
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or_default();
+
+            (stem, ext)
+        })
+        .ok_or_else(|| anyhow::anyhow!(t!("main.convert_invalid_filename")))?;
+
+    let input_dir = match input.parent() {
+        Some(dir) => dir,
+        None => anyhow::bail!(t!("main.convert_invalid_filename")),
+    };
+
+    let output_dir = input_dir.join("converted");
+
+    std::fs::create_dir_all(&output_dir)?;
+
+    let outputs = matches
+        .get_many::<OutputFormat>("outputs")
+        .ok_or_else(|| anyhow::anyhow!(t!("main.convert_outputs_required")))?;
+
+    let outputs: Vec<PathBuf> = outputs
+        .into_iter()
+        .map(|format| {
+            let path = output_dir.join(format!("{}.{}", name, format));
+            path
+        })
+        .collect();
+
+    let converter = Converter::new(input, &outputs)?;
+
+    converter.convert()?;
+
+    Ok(())
 }
 
 // #[instrument]

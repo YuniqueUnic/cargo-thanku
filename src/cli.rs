@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use tracing::instrument;
 
+use crate::output::OutputFormat;
+
 // Arg::new("language")
 //     .short('l')
 //     .long("language")
@@ -79,7 +81,31 @@ impl clap::builder::TypedValueParser for LanguageParser {
     }
 }
 
-#[instrument(skip_all)]
+/// 定义输出格式解析器
+#[allow(unused)]
+#[derive(Clone, Debug)]
+struct OutputFormatParser;
+
+impl clap::builder::TypedValueParser for OutputFormatParser {
+    type Value = OutputFormat;
+
+    #[instrument]
+    fn parse_ref(
+        &self,
+        cmd: &Command,
+        arg: Option<&Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let input = value.to_string_lossy().to_lowercase();
+        Ok(OutputFormat::from_str(&input).map_err(|_| {
+            clap::Error::raw(
+                clap::error::ErrorKind::InvalidValue,
+                format!("{}", t!("cli.invalid_output_format", format = input)),
+            )
+        })?)
+    }
+}
+
 pub fn build_cli() -> Command {
     let mut cmd = Command::new("cargo-thanku") // Use "cargo-thanku" as the command name for `cargo thanku`
         .bin_name("cargo-thanku") // This tells cargo how to invoke it
@@ -108,7 +134,7 @@ pub fn build_cli() -> Command {
                 .long("format")
                 .help(format!("{}", t!("cli.format_help")))
                 .global(true)
-                .value_parser(["markdown-table", "markdown-list", "json", "toml", "yaml"])
+                .value_parser(OutputFormatParser)
                 .default_value("markdown-table"),
             Arg::new("source")
                 .short('s')
@@ -136,7 +162,7 @@ pub fn build_cli() -> Command {
                 .global(true)
                 // .env("LANG")
                 // .value_parser(["zh", "en", "ja", "ko", "es", "fr", "de", "it"])
-                .value_parser(clap::value_parser!(String)) // Assuming LanguageParser is handled later or is simple
+                .value_parser(LanguageParser) // Assuming LanguageParser is handled later or is simple
                 .default_value("zh"),
             Arg::new("verbose")
                 .short('v')
@@ -166,7 +192,25 @@ pub fn build_cli() -> Command {
                 .aliases(["thx", "thxu"])
                 .about(format!("{}", t!("cli.thanku_about")))
                 .hide(true),
+            Command::new("convert")
+                .aliases(["cvt", "conv", "convt"])
+                .about(format!("{}", t!("cli.convert_help")))
+                .args([
+                    Arg::new("input")
+                        .help(format!("{}", t!("cli.convert_input_help")))
+                        .required(true)
+                        .display_order(0)
+                        .value_hint(clap::ValueHint::FilePath)
+                        .value_parser(clap::value_parser!(PathBuf)),
+                    Arg::new("outputs") // 支持多选，使用逗号分隔
+                        .help(format!("{}", t!("cli.convert_outputs_help")))
+                        .required(true)
+                        .value_delimiter(',')
+                        .display_order(1)
+                        .value_parser(OutputFormatParser),
+                ]),
             Command::new("completions")
+                .aliases(["comp", "completion"])
                 .about(format!("{}", t!("cli.completions_about")))
                 .arg(
                     Arg::new("shell")

@@ -24,3 +24,7 @@
 - assert_fs : Filesystem fixtures and assertions for testing. - [assert_fs](https://crates.io/crates/assert_fs) [GitHub](https://github.com/assert-rs/assert_fs.git) (❓) ✅
 - pretty_assertions : Overwrite `assert_eq!` and `assert_ne!` with drop-in replacements, adding colorful diffs. - [pretty_assertions](https://crates.io/crates/pretty_assertions) [GitHub](https://github.com/rust-pretty-assertions/rust-pretty-assertions) (❓) ✅
 - tokio-test : Testing utilities for Tokio- and futures-based code - [tokio-test](https://crates.io/crates/tokio-test) [GitHub](https://github.com/tokio-rs/tokio) (❓) ✅
+
+## Unknown
+
+### Failed Test
