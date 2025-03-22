@@ -6,7 +6,7 @@ A command-line tool for generating acknowledgments for your Rust project depende
 
 ## Key Features
 
-- Generates acknowledgments in multiple formats (Markdown table/list, JSON, TOML, YAML)
+- Generates acknowledgments in multiple formats (Markdown table/list, JSON, ~~TOML~~, CSV, YAML)
 - Fetches dependency information from crates.io and GitHub
 - Supports concurrent processing with configurable limits
 - Implements retry mechanism for failed requests
@@ -34,7 +34,7 @@ cargo thanku completions bash > ~/.local/share/bash-completion/completions/cargo
 cargo thanku
 
 # Specify output format
-cargo thanku -f markdown-table  # or markdown-list, json, toml, yaml
+cargo thanku -f markdown-table  # or markdown-list, json, csv, yaml
 
 # Set GitHub token for more information and automatic starring
 cargo thanku -t YOUR_GITHUB_TOKEN
@@ -72,15 +72,15 @@ Convert between different output formats:
 cargo thanku convert input.md -o markdown-table,json,yaml
 
 # Short command aliases
-cargo thanku cvt input.md -o toml,yaml
+cargo thanku cvt input.csv -o markdown-table,yaml
 cargo thanku conv input.md -o json
-cargo thanku convt input.md -o markdown-list
+cargo thanku convt input.yaml -o markdown-list
 ```
 
 The converter will:
 - Create a `converted` directory in the same location as the input file
 - Generate output files with appropriate extensions
-- Support conversion between all supported formats (markdown-table, markdown-list, json, toml, yaml)
+- Support conversion between all supported formats (markdown-table, markdown-list, json, ~~toml~~, yaml, csv)
 
 #### Command-Line Arguments
   
