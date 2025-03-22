@@ -1562,9 +1562,12 @@ mod tests {
         let mut output = Vec::new(); // Change String to Vec<u8>
         let mut manager = OutputManager::new(OutputFormat::MarkdownTable, &mut output); // Pass &mut output
         manager.write(&deps)?;
-        let output_str = String::from_utf8(output).unwrap().replace("\r\n", "\n");
+        let output_str = String::from_utf8(output).unwrap();
         // std::fs::write("./assets/output/THANKU_table_parsed.csv", &output_str)?;
-        assert_eq!(output_str, content);
+        assert_eq!(
+            output_str.replace("\r\n", "\n"),
+            content.replace("\r\n", "\n")
+        );
         Ok(())
     }
 
@@ -1579,9 +1582,11 @@ mod tests {
         manager.write(&deps)?;
         let output_str = String::from_utf8(output).unwrap();
         // std::fs::write("./assets/output/THANKU_list_parsed.md", &output_str)?;
-        let output_str =
-            format!("{}\n## Unknown\n\n### Failed Test", output_str).replace("\r\n", "\n");
-        assert_eq!(output_str, content);
+        let output_str = format!("{}\n## Unknown\n\n### Failed Test", output_str);
+        assert_eq!(
+            output_str.replace("\r\n", "\n"),
+            content.replace("\r\n", "\n")
+        );
         Ok(())
     }
 
@@ -1594,9 +1599,12 @@ mod tests {
         let mut output = Vec::new(); // Change String to Vec<u8>
         let mut manager = OutputManager::new(OutputFormat::Csv, &mut output); // Pass &mut output
         manager.write(&deps)?;
-        let output_str = String::from_utf8(output).unwrap().replace("\r\n", "\n");
+        let output_str = String::from_utf8(output).unwrap();
         // std::fs::write("./assets/output/THANKU_table_parsed2.csv", &output_str)?;
-        assert_eq!(output_str, content);
+        assert_eq!(
+            output_str.replace("\r\n", "\n"),
+            content.replace("\r\n", "\n")
+        );
         Ok(())
     }
 
@@ -1612,9 +1620,12 @@ mod tests {
         let mut output = Vec::new(); // Change String to Vec<u8>
         let mut manager = OutputManager::new(OutputFormat::Csv, &mut output); // Pass &mut output
         manager.write(&deps).unwrap();
-        let output_str = String::from_utf8(output).unwrap().replace("\r\n", "\n");
+        let output_str = String::from_utf8(output).unwrap();
         // std::fs::write("./assets/output/THANKU_table_parsed2.csv", &output_str)?;
-        assert_eq!(output_str, content);
+        assert_eq!(
+            output_str.replace("\r\n", "\n"),
+            content.replace("\r\n", "\n")
+        );
     }
 
     #[test]
@@ -1626,9 +1637,12 @@ mod tests {
         let mut output = Vec::new(); // Change String to Vec<u8>
         let mut manager = OutputManager::new(OutputFormat::Json, &mut output); // Pass &mut output
         manager.write(&deps)?;
-        let output_str = String::from_utf8(output).unwrap().replace("\r\n", "\n");
+        let output_str = String::from_utf8(output).unwrap();
         // std::fs::write("./assets/output/THANKU_json_en.json", &output_str)?;
-        assert_eq!(output_str, content);
+        assert_eq!(
+            output_str.replace("\r\n", "\n"),
+            content.replace("\r\n", "\n")
+        );
         Ok(())
     }
 
@@ -1641,9 +1655,12 @@ mod tests {
         let mut output = Vec::new(); // Change String to Vec<u8>
         let mut manager = OutputManager::new(OutputFormat::Yaml, &mut output); // Pass &mut output
         manager.write(&deps)?;
-        let output_str = String::from_utf8(output).unwrap().replace("\r\n", "\n");
+        let output_str = String::from_utf8(output).unwrap();
         // std::fs::write("./assets/output/THANKU_yaml_en.yaml", &output_str)?;
-        assert_eq!(output_str, content);
+        assert_eq!(
+            output_str.replace("\r\n", "\n"),
+            content.replace("\r\n", "\n")
+        );
         Ok(())
     }
 }
