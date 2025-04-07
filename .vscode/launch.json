@@ -20,11 +20,10 @@
                 }
             },
             "args": [
-                "thanku",
-                "-o",
-                "./test.md",
-                "-v",
-                "--input=./cargo.toml"
+                "convert",
+                "--input=./assets/output/THANKU_en.csv",
+                "--outputs=mt",
+                "-v"
             ],
             "cwd": "${workspaceFolder}"
         },

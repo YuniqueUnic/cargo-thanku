@@ -126,10 +126,14 @@ fn handle_convert(matches: &clap::ArgMatches) -> Result<()> {
     let outputs: Vec<PathBuf> = outputs
         .into_iter()
         .map(|format| {
+            let file_name = format!(
+                "{}_{}",
+                name.trim_end_matches(['_']),
+                format.to_identifier()
+            );
             let path = output_dir.join(format!(
-                "{}_{}.{}",
-                name,
-                format.to_identifier(),
+                "{}.{}",
+                file_name.trim_end_matches(['_']),
                 format.to_extension()
             ));
             path

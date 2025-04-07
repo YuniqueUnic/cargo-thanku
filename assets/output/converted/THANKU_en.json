@@ -1,0 +1,282 @@
+[
+  {
+    "name": "anyhow",
+    "description": "Flexible concrete Error type built on std::error::Error",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/anyhow",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/dtolnay/anyhow",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "cargo_metadata",
+    "description": "structured access to the output of `cargo metadata`",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/cargo_metadata",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/oli-obk/cargo_metadata",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "clap",
+    "description": "A simple to use, efficient, and full-featured Command Line Argument Parser",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/clap",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/clap-rs/clap",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "clap_complete",
+    "description": "Generate shell completion scripts for your clap::Command",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/clap_complete",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/clap-rs/clap",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "futures",
+    "description": "An implementation of futures and streams featuring zero allocations, composability, and iterator-like interfaces.",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/futures",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/rust-lang/futures-rs",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "reqwest",
+    "description": "higher level HTTP client library",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/reqwest",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/seanmonstar/reqwest",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "rust-i18n",
+    "description": "Rust I18n is use Rust codegen for load YAML file storage translations on compile time, and give you a t! macro for simply get translation texts.",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/rust-i18n",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/longbridge/rust-i18n",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "serde",
+    "description": "A generic serialization/deserialization framework",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/serde",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/serde-rs/serde",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "serde_json",
+    "description": "A JSON serialization file format",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/serde_json",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/serde-rs/json",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "serde_yaml",
+    "description": "YAML data format for Serde",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/serde_yaml",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/dtolnay/serde-yaml",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "strsim",
+    "description": "Implementations of string similarity metrics. Includes Hamming, Levenshtein, OSA, Damerau-Levenshtein, Jaro, Jaro-Winkler, and Sørensen-Dice.",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/strsim",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/rapidfuzz/strsim-rs",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "thiserror",
+    "description": "derive(Error)",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/thiserror",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/dtolnay/thiserror",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "tokio",
+    "description": "An event-driven, non-blocking I/O platform for writing asynchronous I/O backed applications.",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/tokio",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/tokio-rs/tokio",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "toml",
+    "description": "A native Rust encoder and decoder of TOML-formatted files and streams. Provides implementations of the standard Serialize/Deserialize traits for TOML data to facilitate deserializing and serializing Rust structures.",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/toml",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/toml-rs/toml",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "tracing",
+    "description": "Application-level tracing for Rust.",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/tracing",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/tokio-rs/tracing",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "tracing-subscriber",
+    "description": "Utilities for implementing and composing `tracing` subscribers.",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/tracing-subscriber",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/tokio-rs/tokio",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "url",
+    "description": "URL library for Rust, based on the WHATWG URL Standard",
+    "dependency_kind": "Normal",
+    "crate_url": "https://crates.io/crates/url",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/servo/rust-url",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "assert_fs",
+    "description": "Filesystem fixtures and assertions for testing.",
+    "dependency_kind": "Development",
+    "crate_url": "https://crates.io/crates/assert_fs",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/assert-rs/assert_fs.git",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "pretty_assertions",
+    "description": "Overwrite `assert_eq!` and `assert_ne!` with drop-in replacements, adding colorful diffs.",
+    "dependency_kind": "Development",
+    "crate_url": "https://crates.io/crates/pretty_assertions",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/rust-pretty-assertions/rust-pretty-assertions",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  },
+  {
+    "name": "tokio-test",
+    "description": "Testing utilities for Tokio- and futures-based code",
+    "dependency_kind": "Development",
+    "crate_url": "https://crates.io/crates/tokio-test",
+    "source_type": "GitHub",
+    "source_url": "https://github.com/tokio-rs/tokio",
+    "stats": {
+      "stars": null,
+      "downloads": null
+    },
+    "failed": false,
+    "error_message": null
+  }
+]

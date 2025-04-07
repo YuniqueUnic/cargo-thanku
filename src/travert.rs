@@ -25,6 +25,23 @@ impl Travert {
         }
     }
 
+    fn detect_markdown_format_by_name(path: &Path) -> Result<OutputFormat> {
+        let file_name = path.file_stem();
+
+        if file_name.is_none() {
+            return Ok(OutputFormat::MarkdownList);
+        }
+
+        let file_name = file_name.unwrap().to_string_lossy().to_string();
+        let format_identifier = file_name.split(['_']).last();
+
+        match format_identifier {
+            Some("md") => Ok(OutputFormat::MarkdownTable),
+            Some("mt") => Ok(OutputFormat::MarkdownList),
+            _ => Ok(OutputFormat::MarkdownList),
+        }
+    }
+
     /// 判断是 markdown 表格还是 markdown 列表
     fn detect_markdown_content_format(content: &str) -> Result<OutputFormat> {
         let table_re = regex::Regex::new(
@@ -64,24 +81,28 @@ impl Travert {
     fn judge_format<P: AsRef<Path>>(path: P) -> Result<OutputFormat> {
         let path = path.as_ref();
 
-        if path.is_file() {
-            let extension = path.extension().unwrap_or_default().to_ascii_lowercase();
+        let file_exists = path.exists();
+        let extension = path.extension().unwrap_or_default().to_ascii_lowercase();
+        // println!("extension:  {}", &extension.clone().into_string().unwrap());
 
-            return match extension.to_str() {
-                Some("md") => {
+        return match extension.to_str() {
+            Some("md") => {
+                if file_exists {
                     let content = std::fs::read_to_string(path)?;
                     Self::detect_markdown_content_format(&content)
+                } else {
+                    Self::detect_markdown_format_by_name(path)
                 }
-                Some("csv") => Ok(OutputFormat::Csv),
-                // Some("toml") => Ok(OutputFormat::Toml),
-                Some("yml") => Ok(OutputFormat::Yaml),
-                Some("yaml") => Ok(OutputFormat::Yaml),
-                Some("json") => Ok(OutputFormat::Json),
-                _ => anyhow::bail!(t!("travert.failed_to_judge_format", path = path.display())),
-            };
-        }
+            }
+            Some("csv") => Ok(OutputFormat::Csv),
+            Some("toml") => Ok(OutputFormat::Toml),
+            Some("yml") => Ok(OutputFormat::Yaml),
+            Some("yaml") => Ok(OutputFormat::Yaml),
+            Some("json") => Ok(OutputFormat::Json),
+            _ => anyhow::bail!(t!("travert.failed_to_judge_format", path = path.display())),
+        };
 
-        anyhow::bail!(t!("travert.failed_to_judge_format", path = path.display()))
+        // anyhow::bail!(t!("travert.failed_to_judge_format", path = path.display()))
     }
 }
 
@@ -131,6 +152,7 @@ impl Converter {
         // 批量写入（减少系统调用次数）
         for (path, data) in outputs? {
             std::fs::write(path, data)?;
+            println!("{}", t!("travert.write_success", path = path.display()));
         }
 
         Ok(())

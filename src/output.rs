@@ -53,12 +53,12 @@ impl std::str::FromStr for OutputFormat {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s.to_lowercase().as_str() {
-            "markdown-table" => Self::MarkdownTable,
-            "markdown-list" => Self::MarkdownList,
+            "mt" | "markdown-table" => Self::MarkdownTable,
+            "ml" | "markdown-list" => Self::MarkdownList,
             "csv" => Self::Csv,
             "json" => Self::Json,
             "toml" => Self::Toml,
-            "yaml" => Self::Yaml,
+            "yml" | "yaml" => Self::Yaml,
             _ => return Err(AppError::InvalidOutputFormat(s.to_string())),
         })
     }

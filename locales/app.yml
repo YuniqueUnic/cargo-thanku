@@ -815,3 +815,12 @@ travert:
     fr: "❌ Impossible d'analyser le contenu: %{path}"
     de: "❌ Inhalt konnte nicht analysiert werden: %{path}"
     it: "❌ Contenuto non analizzato: %{path}"
+  write_success:
+    zh: "✅ 写入成功：%{path}"
+    en: "✅ Write success: %{path}"
+    ja: "✅ 書き込み成功：%{path}"
+    ko: "✅ 작성 성공: %{path}"
+    es: "✅ Escritura exitosa: %{path}"
+    fr: "✅ Écriture réussie: %{path}"
+    de: "✅ Schreiben erfolgreich: %{path}"
+    it: "✅ Scrittura riuscita: %{path}"

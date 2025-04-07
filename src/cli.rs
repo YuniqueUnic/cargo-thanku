@@ -113,7 +113,6 @@ fn build_global_args() -> [Arg; 2] {
             .long("verbose")
             .help(format!("{}", t!("cli.verbose_help")))
             .global(true)
-            .group("global")
             .display_order(99)
             .env("VERBOSE")
             .default_value("false")
@@ -123,7 +122,6 @@ fn build_global_args() -> [Arg; 2] {
             .long("language")
             .help(format!("{}", t!("cli.language_help")))
             .global(true)
-            .group("global")
             .display_order(98)
             // .env("LANG")
             .value_parser(["zh", "en", "ja", "ko", "es", "fr", "de", "it"])
@@ -166,12 +164,15 @@ fn build_thanku_args() -> [Arg; 8] {
             .group("thanku")
             // .value_parser(OutputFormatParser)
             .value_parser([
-                "markdown-table",
-                "markdown-list",
+                "mt",
+                "ml",
                 "csv",
                 "json",
                 "yaml",
                 "toml",
+                "yml",
+                "markdown-list",
+                "markdown-table",
             ])
             .default_value("markdown-table"),
         Arg::new("source")
@@ -245,12 +246,15 @@ fn build_convert_args() -> [Arg; 2] {
             .display_order(1)
             // .value_parser(OutputFormatParser)
             .value_parser([
-                "markdown-table",
-                "markdown-list",
+                "mt",
+                "ml",
                 "csv",
                 "json",
                 "yaml",
                 "toml",
+                "yml",
+                "markdown-list",
+                "markdown-table",
             ]),
     ]
 }
@@ -260,10 +264,6 @@ pub fn build_cli() -> Command {
     let thanku_args = build_thanku_args();
     let convert_args = build_convert_args();
 
-    let global_args_ids = global_args
-        .iter()
-        .map(|arg| arg.get_id())
-        .collect::<Vec<_>>();
     let thanku_args_ids = thanku_args
         .iter()
         .map(|arg| arg.get_id())
@@ -273,7 +273,6 @@ pub fn build_cli() -> Command {
         .map(|arg| arg.get_id())
         .collect::<Vec<_>>();
 
-    let global_group = ArgGroup::new("global").args(global_args_ids).multiple(true);
     let thanku_group = ArgGroup::new("thanku").args(thanku_args_ids).multiple(true);
     let convert_group = ArgGroup::new("convert")
         .args(convert_args_ids)
@@ -283,7 +282,7 @@ pub fn build_cli() -> Command {
     let mut cmd = Command::new("cargo-thanku") // Use "cargo-thanku" as the command name for `cargo thanku`
         .bin_name("cargo-thanku") // This tells cargo how to invoke it
         .aliases(["thx", "thxu"])
-        .groups([&thanku_group, &global_group])
+        .groups([&thanku_group])
         .version(env!("CARGO_PKG_VERSION"))
         .about(format!("{}", t!("cli.about")))
         .args(&global_args)
@@ -318,10 +317,8 @@ pub fn build_cli() -> Command {
                 .about("test")
                 .args(&global_args)
                 // .args(&thanku_args)
-                .args(&convert_args)
-                // .group(&convert_group)
-                // .group(&thanku_group)
-                .group(&global_group),
+                .args(&convert_args), // .group(&convert_group)
+                                      // .group(&thanku_group),
         );
     }
 

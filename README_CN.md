@@ -6,7 +6,7 @@
 
 ## 主要特性
 
-- 支持多种输出格式（Markdown 表格/列表、JSON、~~TOML~~、YAML、CSV）
+- 支持多种输出格式（Markdown 表格/列表、JSON、TOML、YAML、CSV）
 - 自动从 crates.io 和 GitHub 获取依赖信息
 - 支持可配置的并发处理
 - 实现请求失败重试机制
@@ -34,7 +34,7 @@ cargo thanku completions bash > ~/.local/share/bash-completion/completions/cargo
 cargo thanku
 
 # 指定输出格式
-cargo thanku -f markdown-table  # 可选：markdown-table, markdown-list, json, csv, yaml
+cargo thanku -f markdown-table  # 可选：mt(markdown-table), ml(markdown-list), json, csv, yaml, toml
 
 # 设置 GitHub 令牌以获取更多信息并自动点赞
 cargo thanku -t YOUR_GITHUB_TOKEN
@@ -69,19 +69,19 @@ cargo thanku --no-relative-libs
 ```bash
 # 不支持 cargo thanku convert 模式语法调用
 # 将单个文件转换为多种格式
-cargo-thanku convert input.md -o markdown-table,json,yaml
+cargo-thanku convert input.md -o markdown-table,json,yaml,toml
 
 # 简短的命令别名
 # Short command aliases
-cargo thanku cvt input.csv -o markdown-table,yaml
-cargo thanku conv input.md -o json
-cargo thanku convt input.yaml -o markdown-list
+cargo-thanku cvt input.csv -o mt,yaml
+cargo-thanku conv input.md -o json
+cargo-thanku convt input.yaml -o markdown-list
 ```
 
 转换器将：
 - 在与输入文件相同的目录下创建一个 `converted` 目录
 - 生成带有适当扩展名的输出文件
-- 支持所有受支持格式之间的转换 (markdown-table, markdown-list, json, ~~toml~~, yaml, csv)
+- 支持所有受支持格式之间的转换 (markdown-table, markdown-list, json, yaml, csv, toml)
 
 #### 命令行参数
 
@@ -146,7 +146,7 @@ cargo thanku completions elvish > ~/.elvish/lib/cargo-thanku.elv
 - [serde](https://crates.io/crates/serde) [序列化框架](https://github.com/serde-rs/serde) (🌟 3.5k) ✅
 ```
 
-### JSON/TOML/YAML
+### MARKDOWN/CSV/JSON/TOML/YAML
 同时支持结构化输出格式，方便程序化使用。
 
 ## 重要说明
