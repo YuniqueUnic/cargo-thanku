@@ -13,8 +13,8 @@ pub enum OutputFormat {
     MarkdownList,
     Csv,
     Json,
-    // Toml,
     Yaml,
+    Toml,
 }
 
 impl OutputFormat {
@@ -32,6 +32,7 @@ impl OutputFormat {
             Self::Csv => "csv",
             Self::Json => "json",
             Self::Yaml => "yaml",
+            Self::Toml => "toml",
         }
     }
 }
@@ -56,7 +57,7 @@ impl std::str::FromStr for OutputFormat {
             "markdown-list" => Self::MarkdownList,
             "csv" => Self::Csv,
             "json" => Self::Json,
-            // "toml" => Self::Toml,
+            "toml" => Self::Toml,
             "yaml" => Self::Yaml,
             _ => return Err(AppError::InvalidOutputFormat(s.to_string())),
         })
@@ -163,6 +164,11 @@ impl DependencyKind {
         let s = s.trim_end_matches("\n");
         Ok(Self::from_str(s)?)
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct DependencyList {
+    dependencies: Vec<DependencyInfo>,
 }
 
 /// 表示一个依赖项的信息
@@ -483,6 +489,7 @@ impl dyn Formatter {
             OutputFormat::Csv => Box::new(CsvFormatter),
             OutputFormat::Json => Box::new(JsonFormatter),
             OutputFormat::Yaml => Box::new(YamlFormatter),
+            OutputFormat::Toml => Box::new(TomlFormatter),
         })
     }
 }
@@ -922,18 +929,30 @@ impl Formatter for JsonFormatter {
     }
 }
 
-/// TOML 格式化器
-// pub struct TomlFormatter;
+// TOML 格式化器
+pub struct TomlFormatter;
 
-// impl Formatter for TomlFormatter {
-//     fn format(&self, deps: &[DependencyInfo]) -> Result<String> {
-//         Ok(toml::to_string_pretty(deps)?)
-//     }
+impl Formatter for TomlFormatter {
+    fn format(&self, deps: &[DependencyInfo]) -> Result<String> {
+        // // Convert Vec to HashMap with name as key
+        // let deps_map: std::collections::HashMap<String, &DependencyInfo> = deps
+        //     .into_iter()
+        //     .map(|dep| (dep.name.clone(), dep))
+        //     .collect();
 
-//     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>> {
-//         Ok(toml::from_str(content)?)
-//     }
-// }
+        // Ok(toml::to_string_pretty(&deps_map)?)
+        let deps_list = DependencyList {
+            dependencies: deps.to_vec(),
+        };
+
+        Ok(toml::to_string_pretty(&deps_list)?)
+    }
+
+    fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>> {
+        let deps_list: DependencyList = toml::from_str(content)?;
+        Ok(deps_list.dependencies)
+    }
+}
 
 /// YAML 格式化器
 pub struct YamlFormatter;
@@ -1019,7 +1038,7 @@ impl<W: Write> OutputManager<W> {
             OutputFormat::MarkdownTable => Box::new(MarkdownTableFormatter),
             OutputFormat::MarkdownList => Box::new(MarkdownListFormatter),
             OutputFormat::Json => Box::new(JsonFormatter),
-            // OutputFormat::Toml => Box::new(TomlFormatter),
+            OutputFormat::Toml => Box::new(TomlFormatter),
             OutputFormat::Yaml => Box::new(YamlFormatter),
             OutputFormat::Csv => Box::new(CsvFormatter),
         };
@@ -1103,6 +1122,108 @@ mod tests {
     use crate::config::Config;
 
     use super::*;
+
+    #[test]
+    fn test_toml_formatter_with_hashmap() {
+        let deps = vec![
+            DependencyInfo {
+                name: "serde".to_string(),
+                description: Some(
+                    "A data interchange format with a strong focus on simplicity and usability."
+                        .to_string(),
+                ),
+                crate_url: Some("https://crates.io/crates/serde".to_string()),
+                source_type: "GitHub".to_string(),
+                source_url: Some("https://github.com/serde-rs/serde".to_string()),
+                stats: DependencyStats {
+                    stars: Some(1000),
+                    downloads: None,
+                },
+                failed: false,
+                error_message: Some("".to_string()),
+                dependency_kind: DependencyKind::Normal,
+            },
+            DependencyInfo {
+                name: "test".to_string(),
+                description: Some(
+                    "A data interchange format with a strong focus on simplicity and usability."
+                        .to_string(),
+                ),
+                crate_url: Some("https://crates.io/crates/test".to_string()),
+                source_type: "GitHub".to_string(),
+                source_url: Some("https://github.com/test-rs/test".to_string()),
+                stats: DependencyStats {
+                    stars: Some(1000),
+                    downloads: Some(10000),
+                },
+                failed: false,
+                error_message: None,
+                dependency_kind: DependencyKind::Development,
+            },
+        ];
+
+        // Convert Vec to HashMap with name as key
+        let deps_map: std::collections::HashMap<String, DependencyInfo> = deps
+            .into_iter()
+            .map(|dep| (dep.name.clone(), dep))
+            .collect();
+
+        // let formatter = TomlFormatter;
+        let result = toml::to_string(&deps_map).unwrap();
+        println!("{}", result);
+        assert!(result.contains("name = \"serde\""));
+    }
+
+    #[test]
+    fn test_toml_formatter_with_vec() {
+        let deps = vec![
+            DependencyInfo {
+                name: "serde".to_string(),
+                description: Some(
+                    "A data interchange format with a strong focus on simplicity and usability."
+                        .to_string(),
+                ),
+                crate_url: Some("https://crates.io/crates/serde".to_string()),
+                source_type: "GitHub".to_string(),
+                source_url: Some("https://github.com/serde-rs/serde".to_string()),
+                stats: DependencyStats {
+                    stars: Some(1000),
+                    downloads: None,
+                },
+                failed: false,
+                error_message: Some("".to_string()),
+                dependency_kind: DependencyKind::Normal,
+            },
+            DependencyInfo {
+                name: "test".to_string(),
+                description: Some(
+                    "A data interchange format with a strong focus on simplicity and usability."
+                        .to_string(),
+                ),
+                crate_url: Some("https://crates.io/crates/test".to_string()),
+                source_type: "GitHub".to_string(),
+                source_url: Some("https://github.com/test-rs/test".to_string()),
+                stats: DependencyStats {
+                    stars: Some(1000),
+                    downloads: Some(10000),
+                },
+                failed: false,
+                error_message: None,
+                dependency_kind: DependencyKind::Development,
+            },
+        ];
+
+        let formatter = TomlFormatter;
+        let result = formatter.format(&deps).unwrap();
+        println!("{}", result);
+        assert!(result.contains("name = \"serde\""));
+
+        let deps_list = formatter.parse(&result).unwrap();
+        dbg!(&deps_list);
+        assert_eq!(deps_list.len(), deps.len());
+        assert_eq!(deps_list[0].name, deps[0].name);
+        assert_eq!(deps_list[1].name, deps[1].name);
+    }
 
     #[test]
     fn test_markdown_table_formatter() {

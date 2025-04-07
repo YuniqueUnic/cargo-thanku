@@ -165,7 +165,14 @@ fn build_thanku_args() -> [Arg; 8] {
             // .global(true)
             .group("thanku")
             // .value_parser(OutputFormatParser)
-            .value_parser(["markdown-table", "markdown-list", "csv", "json", "yaml"])
+            .value_parser([
+                "markdown-table",
+                "markdown-list",
+                "csv",
+                "json",
+                "yaml",
+                "toml",
+            ])
             .default_value("markdown-table"),
         Arg::new("source")
             .short('s')
@@ -237,7 +244,14 @@ fn build_convert_args() -> [Arg; 2] {
             .value_delimiter(',')
             .display_order(1)
             // .value_parser(OutputFormatParser)
-            .value_parser(["markdown-table", "markdown-list", "csv", "json", "yaml"]),
+            .value_parser([
+                "markdown-table",
+                "markdown-list",
+                "csv",
+                "json",
+                "yaml",
+                "toml",
+            ]),
     ]
 }
 
