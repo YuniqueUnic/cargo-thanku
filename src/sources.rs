@@ -67,6 +67,12 @@ pub struct CratesioClient {
     client: Client,
 }
 
+impl Default for CratesioClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CratesioClient {
     pub fn new() -> Self {
         Self {
@@ -78,7 +84,7 @@ impl CratesioClient {
                     env!("CARGO_PKG_VERSION")
                 ))
                 .build()
-                .expect(&format!("{}", t!("sources.failed_to_create_http_client"))),
+                .unwrap_or_else(|_| panic!("{}", t!("sources.failed_to_create_http_client"))),
         }
     }
 

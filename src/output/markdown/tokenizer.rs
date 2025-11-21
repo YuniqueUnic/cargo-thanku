@@ -22,7 +22,7 @@ impl<'a> Iterator for MarkdownListTokenizer<'a> {
     type Item = Result<MarkdownSection<'a>, AppError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(line) = self.lines.next() {
+        for line in self.lines.by_ref() {
             let trimmed = line.trim();
             if trimmed.is_empty() {
                 continue;

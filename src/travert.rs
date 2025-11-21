@@ -37,7 +37,7 @@ impl Travert {
         }
 
         let file_name = file_name.unwrap().to_string_lossy().to_string();
-        let format_identifier = file_name.split(['_']).last();
+        let format_identifier = file_name.split(['_']).next_back();
 
         match format_identifier {
             Some("md") => Ok(OutputFormat::MarkdownTable),
@@ -60,9 +60,9 @@ impl Travert {
 
         // find the first match
         // then split it into groups
-        if let Some(captures) = table_re.captures(content) {
-            if captures.len() >= 3 {
-                if let (Some(header_match), Some(separator_match)) =
+        if let Some(captures) = table_re.captures(content)
+            && captures.len() >= 3
+                && let (Some(header_match), Some(separator_match)) =
                     (captures.get(1), captures.get(2))
                 {
                     let header_line = header_match.as_str().trim();
@@ -72,12 +72,10 @@ impl Travert {
 
                     let separator_parts: Vec<&str> = separator_line.split('|').collect();
 
-                    if header_parts.len() > 0 && header_parts.len() == separator_parts.len() {
+                    if !header_parts.is_empty() && header_parts.len() == separator_parts.len() {
                         return Ok(OutputFormat::MarkdownTable);
                     }
                 }
-            }
-        }
 
         Ok(OutputFormat::MarkdownList)
     }
@@ -89,7 +87,7 @@ impl Travert {
         let extension = path.extension().unwrap_or_default().to_ascii_lowercase();
         // println!("extension:  {}", &extension.clone().into_string().unwrap());
 
-        return match extension.to_str() {
+        match extension.to_str() {
             Some("md") => {
                 if file_exists {
                     let content = std::fs::read_to_string(path)?;
@@ -104,7 +102,7 @@ impl Travert {
             Some("yaml") => Ok(OutputFormat::Yaml),
             Some("json") => Ok(OutputFormat::Json),
             _ => anyhow::bail!(t!("travert.failed_to_judge_format", path = path.display())),
-        };
+        }
 
         // anyhow::bail!(t!("travert.failed_to_judge_format", path = path.display()))
     }

@@ -97,12 +97,12 @@ impl clap::builder::TypedValueParser for OutputFormatParser {
         value: &std::ffi::OsStr,
     ) -> Result<Self::Value, clap::Error> {
         let input = value.to_string_lossy().to_lowercase();
-        Ok(OutputFormat::from_str(&input).map_err(|_| {
+        OutputFormat::from_str(&input).map_err(|_| {
             clap::Error::raw(
                 clap::error::ErrorKind::InvalidValue,
                 format!("{}", t!("cli.invalid_output_format", format = input)),
             )
-        })?)
+        })
     }
 }
 
