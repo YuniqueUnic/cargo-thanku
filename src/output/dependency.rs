@@ -234,7 +234,7 @@ impl DependencyInfo {
         Ok(Self {
             name,
             description,
-            dependency_kind: dependency_kind.clone(),
+            dependency_kind: *dependency_kind,
             crate_url,
             source_type,
             source_url,
@@ -262,7 +262,7 @@ impl DependencyInfo {
         Ok(Self {
             name: entry.name.to_string(),
             description,
-            dependency_kind: dependency_kind.clone(),
+            dependency_kind: *dependency_kind,
             crate_url,
             source_type,
             source_url,
@@ -290,13 +290,13 @@ impl DependencyInfo {
     pub fn parse_md_link(s: &str) -> Result<(String, Option<String>)> {
         let parts: Vec<&str> = s.split("](").collect();
         let source_type = parts[0]
-            .trim_start_matches(&Self::TRIM_PATTERN)
-            .trim_end_matches(&Self::TRIM_PATTERN);
+            .trim_start_matches(Self::TRIM_PATTERN)
+            .trim_end_matches(Self::TRIM_PATTERN);
         let source_url = if parts.len() > 1 {
             Some(
                 parts[1]
-                    .trim_start_matches(&Self::TRIM_PATTERN)
-                    .trim_end_matches(&Self::TRIM_PATTERN)
+                    .trim_start_matches(Self::TRIM_PATTERN)
+                    .trim_end_matches(Self::TRIM_PATTERN)
                     .to_string(),
             )
         } else {
@@ -307,8 +307,8 @@ impl DependencyInfo {
 
     pub fn parse_stats(s: &str) -> Result<(Option<u32>, Option<u32>)> {
         let cleaned = s
-            .trim_start_matches(&Self::TRIM_PATTERN)
-            .trim_end_matches(&Self::TRIM_PATTERN);
+            .trim_start_matches(Self::TRIM_PATTERN)
+            .trim_end_matches(Self::TRIM_PATTERN);
 
         match cleaned {
             text if text.contains('🌟') && text.contains('📦') => {
@@ -349,8 +349,8 @@ impl DependencyInfo {
 
     pub fn parse_status(s: &str) -> Result<(bool, Option<String>)> {
         let cleaned = s
-            .trim_start_matches(&Self::TRIM_PATTERN)
-            .trim_end_matches(&Self::TRIM_PATTERN);
+            .trim_start_matches(Self::TRIM_PATTERN)
+            .trim_end_matches(Self::TRIM_PATTERN);
 
         if cleaned.contains('✅') {
             Ok((false, None))

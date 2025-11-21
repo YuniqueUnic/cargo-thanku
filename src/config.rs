@@ -185,7 +185,7 @@ impl Config {
                 if path.exists() {
                     // 文件存在，则打开文件进行追加写入
                     let file = std::fs::OpenOptions::new()
-                        .write(true)
+                        
                         .append(true)
                         .open(path)
                         .map_err(|e| {

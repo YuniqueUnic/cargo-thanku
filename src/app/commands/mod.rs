@@ -66,7 +66,6 @@ pub fn convert(matches: &ArgMatches) -> Result<()> {
     let outputs = matches
         .get_many::<String>("outputs")
         .unwrap_or_default()
-        .into_iter()
         .map(|format| format.parse::<OutputFormat>().unwrap_or_default())
         .map(|format| {
             let file_name = format!(
