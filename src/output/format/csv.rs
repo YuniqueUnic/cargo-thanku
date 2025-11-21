@@ -57,33 +57,3 @@ impl Formatter for CsvFormatter {
         Ok(deps)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::output::dependency::{DependencyInfo, DependencyKind, DependencyStats};
-
-    #[test]
-    fn csv_roundtrip() {
-        let deps = vec![DependencyInfo {
-            name: "serde".into(),
-            description: Some("Serialization".into()),
-            dependency_kind: DependencyKind::Normal,
-            crate_url: Some("https://crates.io/crates/serde".into()),
-            source_type: "GitHub".into(),
-            source_url: Some("https://github.com/serde-rs/serde".into()),
-            stats: DependencyStats {
-                stars: Some(1000),
-                downloads: None,
-            },
-            failed: false,
-            error_message: None,
-        }];
-
-        let formatter = CsvFormatter;
-        let content = formatter.format(&deps).unwrap();
-        let parsed = formatter.parse(&content).unwrap();
-        assert_eq!(deps[0].name, parsed[0].name);
-        assert_eq!(deps[0].stats.stars, parsed[0].stats.stars);
-    }
-}

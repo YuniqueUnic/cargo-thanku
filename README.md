@@ -22,7 +22,8 @@ A command-line tool for generating acknowledgments for your Rust project depende
   - `output/format/` hosts Markdown, CSV, and structured (JSON/TOML/YAML) formatters behind a shared `Formatter` trait and `OutputFormat` enum.
   - `output/manager.rs` centralizes writer orchestration so CLI and the converter can stream results to stdout/files uniformly.
 - `sources.rs` keeps HTTP clients (crates.io + GitHub) isolated; integration-style tests that hit the network are flagged with `#[ignore]` so the default `cargo test` run stays deterministic/offline-friendly.
-- `travert::Converter` parses once and writes each target file via `BufWriter`, which reduces peak memory and improves throughput for large conversion batches.
+- `travert::Converter` parses once using a streaming `BufReader` and writes each target file via `BufWriter`, which reduces peak memory and improves throughput for large conversion batches.
+- `tests/` mirrors the module layout (`config_tests.rs`, `markdown_format_tests.rs`, etc.) and runs entirely through the public API; ignored cases (like live crates.io calls) are clearly tagged so CI remains deterministic.
 
 A quick glance at `app/pipeline.rs` + `output/` is usually all you need to understand how new data sources or formats plug into the tool.
 
@@ -125,6 +126,16 @@ cargo thanku completions powershell > $PROFILE\..\Completions\cargo-thanku.ps1
 # Elvish
 cargo thanku completions elvish > ~/.elvish/lib/cargo-thanku.elv
 ```
+
+## Testing
+
+Run the entire suite (unit-style and integration) with:
+
+```bash
+cargo test
+```
+
+Network-dependent checks are ignored by default; include them with `cargo test -- --ignored` when you have connectivity and credentials.
 
 ## Command-Line Arguments
 

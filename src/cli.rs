@@ -333,13 +333,3 @@ pub fn generate_completions(shell: &str) -> anyhow::Result<()> {
     clap_complete::generate(shell, &mut cmd, "cargo-thanku", &mut std::io::stdout());
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn verify_cli() {
-        build_cli().debug_assert();
-    }
-}

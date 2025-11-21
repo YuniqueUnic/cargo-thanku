@@ -1,6 +1,7 @@
 use anyhow::Result;
 use std::{
-    io::{BufWriter, Write},
+    fs::File,
+    io::{BufReader, BufWriter, Write},
     path::{Path, PathBuf},
 };
 
@@ -135,10 +136,9 @@ impl Converter {
     }
 
     pub fn convert(&self) -> Result<()> {
-        let source_content = std::fs::read_to_string(&self.source.path)?;
-
+        let mut reader = BufReader::new(File::open(&self.source.path)?);
         let formatter = <dyn output::Formatter>::new(self.source.format)?;
-        let dependencies_info = formatter.parse(&source_content)?;
+        let dependencies_info = formatter.parse_reader(&mut reader)?;
 
         for target in &self.targets {
             let file = std::fs::File::create(&target.path)?;
@@ -152,78 +152,6 @@ impl Converter {
             );
         }
 
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_detect_markdown_table() -> Result<()> {
-        let content = "\
-        | 名称 | 描述 |\n\
-        |---|---|\n\
-        | hello | world |";
-        let format = Travert::detect_markdown_content_format(&content)?;
-        assert_eq!(format, OutputFormat::MarkdownTable);
-        Ok(())
-    }
-
-    #[test]
-    fn test_complex_table() -> Result<()> {
-        // 含对齐符号的表格
-        let content1 = "\
-    | Left | Center | Right |\n\
-    |:-----|:------:|------:|\n\
-    | data | data   | data  |";
-        assert_eq!(
-            Travert::detect_markdown_content_format(&content1)?,
-            OutputFormat::MarkdownTable
-        );
-
-        // 含空格的列
-        let content2 = "\
-    | Column 1   | Column 2 |\n\
-    |------------|----------|\n\
-    | some value | another  |";
-        assert_eq!(
-            Travert::detect_markdown_content_format(&content2)?,
-            OutputFormat::MarkdownTable
-        );
-
-        // 伪表格（列表项）
-        let content3 = "\
-    - Item 1\n\
-    - Item 2";
-        assert_eq!(
-            Travert::detect_markdown_content_format(&content3)?,
-            OutputFormat::MarkdownList
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_detect_markdown_list() -> Result<()> {
-        let content = "
-        * hello
-        * world
-        ";
-        let format = Travert::detect_markdown_content_format(&content)?;
-        assert_eq!(format, OutputFormat::MarkdownList);
-        Ok(())
-    }
-    #[test]
-    fn test_detect_markdown_list_2() -> Result<()> {
-        let content = "
-        - | 名称 | 描述 |
-        - |:---:|:---:|
-        - | hello | world |
-        ";
-        let format = Travert::detect_markdown_content_format(&content)?;
-        assert_eq!(format, OutputFormat::MarkdownList);
         Ok(())
     }
 }
