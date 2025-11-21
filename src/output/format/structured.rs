@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::BufRead;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ impl Formatter for JsonFormatter {
         Ok(serde_json::from_str(content)?)
     }
 
-    fn parse_reader(&self, reader: &mut dyn Read) -> Result<Vec<DependencyInfo>> {
+    fn parse_reader(&self, reader: &mut dyn BufRead) -> Result<Vec<DependencyInfo>> {
         Ok(serde_json::from_reader(reader)?)
     }
 }
@@ -55,7 +55,7 @@ impl Formatter for YamlFormatter {
         Ok(serde_yaml::from_str(content)?)
     }
 
-    fn parse_reader(&self, reader: &mut dyn Read) -> Result<Vec<DependencyInfo>> {
+    fn parse_reader(&self, reader: &mut dyn BufRead) -> Result<Vec<DependencyInfo>> {
         Ok(serde_yaml::from_reader(reader)?)
     }
 }
