@@ -121,11 +121,14 @@ impl MarkdownTableFormatter {
     fn split_row(line: &str) -> Vec<&str> {
         let trimmed = line.trim();
         let processed = if trimmed.starts_with('|') && trimmed.ends_with('|') {
-            &trimmed[1..trimmed.len() - 1]
-        } else if trimmed.starts_with('|') {
-            &trimmed[1..]
-        } else if trimmed.ends_with('|') {
-            &trimmed[..trimmed.len() - 1]
+            trimmed
+                .strip_prefix('|')
+                .and_then(|s| s.strip_suffix('|'))
+                .unwrap_or(trimmed)
+        } else if let Some(s) = trimmed.strip_prefix('|') {
+            s
+        } else if let Some(s) = trimmed.strip_suffix('|') {
+            s
         } else {
             trimmed
         };
