@@ -1,3 +1,5 @@
+use std::io::BufRead;
+
 use anyhow::Result;
 use regex::Regex;
 use rust_i18n::t;
@@ -188,6 +190,63 @@ impl Formatter for MarkdownTableFormatter {
 
         Ok(deps)
     }
+
+    fn parse_reader(&self, reader: &mut dyn BufRead) -> Result<Vec<DependencyInfo>> {
+        let mut buffer = String::new();
+        let mut header_candidate: Option<String> = None;
+        let mut table_lines: Vec<String> = Vec::new();
+        let mut header_columns = 0usize;
+        let mut collecting = false;
+
+        loop {
+            buffer.clear();
+            let bytes = reader.read_line(&mut buffer)?;
+            if bytes == 0 {
+                break;
+            }
+            let line = buffer.trim_end_matches(['\r', '\n']).to_string();
+
+            if collecting {
+                if line.is_empty()
+                    || (!line.starts_with('|') && !line.contains('|'))
+                    || MarkdownTableFormatter::count_columns(&line) != header_columns
+                {
+                    break;
+                }
+                table_lines.push(line);
+                continue;
+            }
+
+            if let Some(header) = header_candidate.take() {
+                if MarkdownTableFormatter::is_valid_separator(&line)
+                    && MarkdownTableFormatter::count_columns(&line)
+                        == MarkdownTableFormatter::count_columns(&header)
+                {
+                    header_columns = MarkdownTableFormatter::count_columns(&header);
+                    table_lines.push(header);
+                    table_lines.push(line.clone());
+                    collecting = true;
+                    continue;
+                } else {
+                    if line.starts_with('|') || line.contains('|') {
+                        header_candidate = Some(line.clone());
+                    }
+                    continue;
+                }
+            }
+
+            if line.starts_with('|') || line.contains('|') {
+                header_candidate = Some(line);
+            }
+        }
+
+        if table_lines.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let table_content = table_lines.join("\n");
+        self.parse(&table_content)
+    }
 }
 
 pub struct MarkdownListFormatter;
@@ -306,5 +365,37 @@ impl Formatter for MarkdownListFormatter {
         }
 
         Ok(deps)
+    }
+
+    fn parse_reader(&self, reader: &mut dyn BufRead) -> Result<Vec<DependencyInfo>> {
+        let mut buffer = String::new();
+        let mut collected = String::new();
+        let mut collecting = false;
+
+        loop {
+            buffer.clear();
+            let bytes = reader.read_line(&mut buffer)?;
+            if bytes == 0 {
+                break;
+            }
+            let line = buffer.trim_end_matches(['\r', '\n']).to_string();
+            if !collecting && line.starts_with("# ") {
+                collecting = true;
+            }
+
+            if collecting {
+                if line.starts_with("# ") && !collected.is_empty() {
+                    break;
+                }
+                collected.push_str(&line);
+                collected.push('\n');
+            }
+        }
+
+        if collected.is_empty() {
+            return Ok(vec![]);
+        }
+
+        self.parse(&collected)
     }
 }

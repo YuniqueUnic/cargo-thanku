@@ -1,3 +1,5 @@
+use std::io::BufRead;
+
 use anyhow::Result;
 use rust_i18n::t;
 
@@ -38,20 +40,40 @@ impl Formatter for CsvFormatter {
     }
 
     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>> {
-        let mut lines = content.lines().filter(|line| !line.trim().is_empty());
+        let mut cursor = std::io::Cursor::new(content.as_bytes());
+        self.parse_reader(&mut cursor)
+    }
 
-        let header = lines
-            .next()
-            .ok_or_else(|| AppError::InvalidCsvContent(content.to_string()))?;
-
+    fn parse_reader(&self, reader: &mut dyn BufRead) -> Result<Vec<DependencyInfo>> {
+        let mut header = String::new();
+        loop {
+            header.clear();
+            if reader.read_line(&mut header)? == 0 {
+                return Ok(vec![]);
+            }
+            if !header.trim().is_empty() {
+                break;
+            }
+        }
+        let header = header.trim();
         let columns = header.split(',').collect::<Vec<_>>();
         if columns.len() != CsvFormatter::column_num() {
-            return Err(AppError::InvalidCsvContent(content.to_string()).into());
+            return Err(AppError::InvalidCsvContent(header.to_string()).into());
         }
 
         let mut deps = Vec::new();
-        for line in lines {
-            deps.push(DependencyInfo::try_from_csv_line(line, columns.len())?);
+        let mut line = String::new();
+        loop {
+            line.clear();
+            let bytes = reader.read_line(&mut line)?;
+            if bytes == 0 {
+                break;
+            }
+            if line.trim().is_empty() {
+                continue;
+            }
+            let trimmed = line.trim_end_matches(&['\r', '\n'][..]);
+            deps.push(DependencyInfo::try_from_csv_line(trimmed, columns.len())?);
         }
 
         Ok(deps)

@@ -1,7 +1,7 @@
 use cargo_thanku::output::{
+    Formatter, OutputFormat, OutputManager,
     dependency::{DependencyInfo, DependencyKind, DependencyStats},
     format::{CsvFormatter, JsonFormatter, TomlFormatter, YamlFormatter},
-    Formatter, OutputFormat, OutputManager,
 };
 
 fn sample_dep() -> DependencyInfo {

@@ -1,7 +1,7 @@
 use cargo_thanku::output::{
+    Formatter,
     dependency::{DependencyInfo, DependencyKind, DependencyStats},
     format::markdown::{MarkdownListFormatter, MarkdownTableFormatter},
-    Formatter,
 };
 
 fn sample_dep(kind: DependencyKind) -> DependencyInfo {

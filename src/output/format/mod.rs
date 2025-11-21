@@ -1,4 +1,4 @@
-use std::{io::Read, str::FromStr};
+use std::{io::BufRead, str::FromStr};
 
 use anyhow::Result;
 
@@ -68,7 +68,7 @@ pub trait Formatter {
     fn format(&self, deps: &[DependencyInfo]) -> Result<String>;
     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>>;
 
-    fn parse_reader(&self, reader: &mut dyn Read) -> Result<Vec<DependencyInfo>> {
+    fn parse_reader(&self, reader: &mut dyn BufRead) -> Result<Vec<DependencyInfo>> {
         let mut buffer = String::new();
         reader.read_to_string(&mut buffer)?;
         self.parse(&buffer)
