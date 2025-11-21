@@ -13,6 +13,17 @@ A command-line tool for generating acknowledgments for your Rust project depende
 - Offers command-line completion for Bash, Zsh, Fish, PowerShell, and Elvish
 - Provides internationalization support (zh/en/ja/ko/es/fr/de/it)
 
+## Architecture Overview
+
+- `src/app` owns CLI bootstrapping, command dispatch (`convert`, `completions`, `test`), logging initialization, and the asynchronous dependency-processing pipeline built on `tokio` semaphores plus `FuturesUnordered` for smoother bounded concurrency.
+- `src/output` is split into focused modules:
+  - `output/dependency.rs` defines the domain entities (`DependencyInfo`, `DependencyKind`, parsing helpers, failure helpers).
+  - `output/format/` hosts Markdown, CSV, and structured (JSON/TOML/YAML) formatters behind a shared `Formatter` trait and `OutputFormat` enum.
+  - `output/manager.rs` centralizes writer orchestration so CLI and the converter can stream results to stdout/files uniformly.
+- `sources.rs` keeps HTTP clients (crates.io + GitHub) isolated; integration-style tests that hit the network are flagged with `#[ignore]` so the default `cargo test` run stays deterministic/offline-friendly.
+
+A quick glance at `app/pipeline.rs` + `output/` is usually all you need to understand how new data sources or formats plug into the tool.
+
 ## Installation
 
 Ensure you have the Rust toolchain installed on your system, then execute:
