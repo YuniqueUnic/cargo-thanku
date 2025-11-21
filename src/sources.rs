@@ -188,6 +188,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires crates.io network access"]
     async fn test_cratesio_client_serde() {
         let client = CratesioClient::new();
         let crate_info = client.get_crate_info("serde").await.unwrap();
