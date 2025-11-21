@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     errors::AppError,
+    output::markdown::tokenizer::ListEntry,
     sources::{CratesioClient, Source},
 };
 
@@ -48,6 +49,11 @@ impl DependencyKind {
         };
 
         format!("## {}", label)
+    }
+
+    pub(crate) fn try_from_list_header_line(header: &str) -> Result<Self, AppError> {
+        let token = header.trim_start_matches("## ").trim();
+        Self::from_str(token)
     }
 }
 
@@ -239,36 +245,22 @@ impl DependencyInfo {
     }
 
     pub fn try_from_md_list_line(line: &str, dependency_kind: &DependencyKind) -> Result<Self> {
-        let parts: Vec<&str> = line.split(" - ").collect();
-        if parts.len() != 2 {
-            return Err(AppError::InvalidListLine(line.to_string()).into());
-        }
+        let entry = ListEntry::from_line(line)?;
+        Self::from_list_entry(entry, dependency_kind)
+    }
 
-        let name_desc: Vec<&str> = parts[0].split(" : ").collect();
-        if name_desc.len() != 2 {
-            return Err(AppError::InvalidListLine(line.to_string()).into());
-        }
-
-        let name = name_desc[0].trim_start_matches('-').trim().to_string();
-        let description = Self::option_from_str(name_desc[1])?;
-
-        let segments: Vec<&str> = parts[1].split(')').collect();
-        if segments.len() != 4 {
-            return Err(AppError::InvalidListLine(line.to_string()).into());
-        }
-
-        let crate_segment = format!("{})", segments[0].trim());
-        let source_segment = format!("{})", segments[1].trim());
-        let stats_segment = format!("{})", segments[2].trim());
-        let status_segment = segments[3];
-
-        let (_, crate_url) = Self::parse_md_link(&crate_segment)?;
-        let (source_type, source_url) = Self::parse_md_link(&source_segment)?;
-        let (stars, downloads) = Self::parse_stats(&stats_segment)?;
-        let (failed, error_message) = Self::parse_status(status_segment)?;
+    pub(crate) fn from_list_entry(
+        entry: ListEntry<'_>,
+        dependency_kind: &DependencyKind,
+    ) -> Result<Self> {
+        let description = entry.description.map(|text| text.to_string());
+        let (_, crate_url) = Self::parse_md_link(entry.crate_segment)?;
+        let (source_type, source_url) = Self::parse_md_link(entry.source_segment)?;
+        let (stars, downloads) = Self::parse_stats(entry.stats_segment)?;
+        let (failed, error_message) = Self::parse_status(entry.status_segment)?;
 
         Ok(Self {
-            name,
+            name: entry.name.to_string(),
             description,
             dependency_kind: dependency_kind.clone(),
             crate_url,

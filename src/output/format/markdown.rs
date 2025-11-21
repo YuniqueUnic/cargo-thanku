@@ -3,7 +3,10 @@ use regex::Regex;
 use rust_i18n::t;
 use tracing::warn;
 
-use crate::output::dependency::{DependencyInfo, DependencyKind};
+use crate::output::{
+    dependency::{DependencyInfo, DependencyKind},
+    markdown::tokenizer::{MarkdownListTokenizer, MarkdownSection, section_kind_from_header},
+};
 
 use super::Formatter;
 
@@ -279,25 +282,26 @@ impl Formatter for MarkdownListFormatter {
 
         let mut deps = Vec::new();
         let mut dependency_kind = DependencyKind::Unknown;
-        for line in list.lines() {
-            let trimmed = line.trim();
-            if trimmed.contains(DependencyKind::Normal.to_md_list_header().as_ref()) {
-                dependency_kind = DependencyKind::Normal;
-                continue;
-            } else if trimmed.contains(DependencyKind::Development.to_md_list_header().as_ref()) {
-                dependency_kind = DependencyKind::Development;
-                continue;
-            } else if trimmed.contains(DependencyKind::Build.to_md_list_header().as_ref()) {
-                dependency_kind = DependencyKind::Build;
-                continue;
-            } else if trimmed.contains(DependencyKind::Unknown.to_md_list_header().as_ref()) {
-                dependency_kind = DependencyKind::Unknown;
-                continue;
-            }
-
-            match DependencyInfo::try_from_md_list_line(trimmed, &dependency_kind) {
-                Ok(dep) => deps.push(dep),
-                Err(_) => warn!("{}", t!("output.failed_to_parse_list_line", line = trimmed)),
+        for token in MarkdownListTokenizer::new(list) {
+            match token {
+                Ok(MarkdownSection::Header(header)) => {
+                    if let Some(kind) = section_kind_from_header(header) {
+                        dependency_kind = kind;
+                    }
+                }
+                Ok(MarkdownSection::Item(entry)) => {
+                    match DependencyInfo::from_list_entry(entry, &dependency_kind) {
+                        Ok(dep) => deps.push(dep),
+                        Err(_) => warn!(
+                            "{}",
+                            t!("output.failed_to_parse_list_line", line = entry.raw_line)
+                        ),
+                    }
+                }
+                Err(err) => warn!(
+                    "{}",
+                    t!("output.failed_to_parse_list_line", line = err.to_string())
+                ),
             }
         }
 

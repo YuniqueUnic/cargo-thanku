@@ -18,9 +18,11 @@ A command-line tool for generating acknowledgments for your Rust project depende
 - `src/app` owns CLI bootstrapping, command dispatch (`convert`, `completions`, `test`), logging initialization, and the asynchronous dependency-processing pipeline built on `tokio` semaphores plus `FuturesUnordered` for smoother bounded concurrency.
 - `src/output` is split into focused modules:
   - `output/dependency.rs` defines the domain entities (`DependencyInfo`, `DependencyKind`, parsing helpers, failure helpers).
+  - `output/markdown/tokenizer.rs` exposes a lightweight tokenizer for Markdown list headers/items so parsing no longer relies on brittle string splits.
   - `output/format/` hosts Markdown, CSV, and structured (JSON/TOML/YAML) formatters behind a shared `Formatter` trait and `OutputFormat` enum.
   - `output/manager.rs` centralizes writer orchestration so CLI and the converter can stream results to stdout/files uniformly.
 - `sources.rs` keeps HTTP clients (crates.io + GitHub) isolated; integration-style tests that hit the network are flagged with `#[ignore]` so the default `cargo test` run stays deterministic/offline-friendly.
+- `travert::Converter` parses once and writes each target file via `BufWriter`, which reduces peak memory and improves throughput for large conversion batches.
 
 A quick glance at `app/pipeline.rs` + `output/` is usually all you need to understand how new data sources or formats plug into the tool.
 
