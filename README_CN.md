@@ -13,6 +13,14 @@
 - 提供命令行自动补全（支持 Bash、Zsh、Fish、PowerShell 和 Elvish）
 - 支持多语言（中文/英文/日文/韩文/西班牙文/法文/德文/意大利文）
 
+## 架构速览
+
+- `src/app` 负责 CLI 启动、子命令（`convert`、`completions`、`test`）路由以及基于 `FuturesUnordered + Semaphore` 的依赖抓取流水线，可在保持并发的同时限制外部请求。
+- `src/output` 拆分为多个子模块：`dependency.rs` 提供领域模型与通用解析；`output/markdown/tokenizer.rs` 为 Markdown 列表提供分词器，`output/format/*` 承载各格式 formatter，`manager.rs` 统一写出逻辑。
+- `src/travert.rs` 的 converter 会一次解析、按目标逐个写出文件（使用 `BufWriter`），避免将所有格式结果一次性缓存在内存中；这对大文件更友好。
+
+了解 `app/pipeline.rs`（并发抓取）和 `output/`（格式化/转换）即可快速扩展新的数据源或输出格式。
+
 ## 安装
 
 确保系统已安装 Rust 工具链，然后执行：

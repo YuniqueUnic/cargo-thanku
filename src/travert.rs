@@ -1,5 +1,8 @@
 use anyhow::Result;
-use std::path::{Path, PathBuf};
+use std::{
+    io::{BufWriter, Write},
+    path::{Path, PathBuf},
+};
 
 use crate::output::{self, OutputFormat};
 
@@ -137,22 +140,16 @@ impl Converter {
         let formatter = <dyn output::Formatter>::new(self.source.format)?;
         let dependencies_info = formatter.parse(&source_content)?;
 
-        // 预生成所有目标格式内容
-        let outputs: Result<Vec<_>> = self
-            .targets
-            .iter()
-            .map(|target| {
-                let mut buffer = Vec::new();
-                let mut manager = output::OutputManager::new(target.format, &mut buffer);
-                manager.write(&dependencies_info)?;
-                Ok((&target.path, buffer))
-            })
-            .collect();
-
-        // 批量写入（减少系统调用次数）
-        for (path, data) in outputs? {
-            std::fs::write(path, data)?;
-            println!("{}", t!("travert.write_success", path = path.display()));
+        for target in &self.targets {
+            let file = std::fs::File::create(&target.path)?;
+            let mut writer = BufWriter::new(file);
+            let mut manager = output::OutputManager::new(target.format, &mut writer);
+            manager.write(&dependencies_info)?;
+            writer.flush()?;
+            println!(
+                "{}",
+                t!("travert.write_success", path = target.path.display())
+            );
         }
 
         Ok(())
