@@ -17,7 +17,8 @@
 
 - `src/app` 负责 CLI 启动、子命令（`convert`、`completions`、`test`）路由以及基于 `FuturesUnordered + Semaphore` 的依赖抓取流水线，可在保持并发的同时限制外部请求。
 - `src/output` 拆分为多个子模块：`dependency.rs` 提供领域模型与通用解析；`output/markdown/tokenizer.rs` 为 Markdown 列表提供分词器，`output/format/*` 承载各格式 formatter，`manager.rs` 统一写出逻辑。
-- `src/travert.rs` 的 converter 会一次解析、按目标逐个写出文件（使用 `BufWriter`），避免将所有格式结果一次性缓存在内存中；这对大文件更友好。
+- `src/travert.rs` 的 converter 使用 `BufReader` 流式解析，再配合 `BufWriter` 按目标逐个写出文件，避免占用多倍内存，对大文件更友好。
+- `tests/` 目录按照模块拆分（如 `config_tests.rs`、`markdown_format_tests.rs`），所有测试都通过公开 API 覆盖核心路径，涉及外网的测试默认 `#[ignore]`，可在需要时单独运行。
 
 了解 `app/pipeline.rs`（并发抓取）和 `output/`（格式化/转换）即可快速扩展新的数据源或输出格式。
 
@@ -121,6 +122,14 @@ cargo thanku completions powershell > $PROFILE\..\Completions\cargo-thanku.ps1
 # Elvish
 cargo thanku completions elvish > ~/.elvish/lib/cargo-thanku.elv
 ```
+
+## 测试
+
+```bash
+cargo test
+```
+
+默认会跳过依赖外网的测试，可通过 `cargo test -- --ignored` 单独运行。
 
 ## 命令行参数
 

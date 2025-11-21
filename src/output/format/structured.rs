@@ -1,3 +1,5 @@
+use std::io::Read;
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
@@ -19,6 +21,10 @@ impl Formatter for JsonFormatter {
 
     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>> {
         Ok(serde_json::from_str(content)?)
+    }
+
+    fn parse_reader(&self, reader: &mut dyn Read) -> Result<Vec<DependencyInfo>> {
+        Ok(serde_json::from_reader(reader)?)
     }
 }
 
@@ -48,55 +54,8 @@ impl Formatter for YamlFormatter {
     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>> {
         Ok(serde_yaml::from_str(content)?)
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::output::dependency::{DependencyInfo, DependencyKind, DependencyStats};
-
-    fn sample_dependency() -> DependencyInfo {
-        DependencyInfo {
-            name: "serde".into(),
-            description: Some("Serialization".into()),
-            dependency_kind: DependencyKind::Normal,
-            crate_url: Some("https://crates.io/crates/serde".into()),
-            source_type: "GitHub".into(),
-            source_url: Some("https://github.com/serde-rs/serde".into()),
-            stats: DependencyStats {
-                stars: Some(1000),
-                downloads: Some(10_000),
-            },
-            failed: false,
-            error_message: None,
-        }
-    }
-
-    #[test]
-    fn toml_roundtrip() {
-        let deps = vec![sample_dependency()];
-        let formatter = TomlFormatter;
-        let content = formatter.format(&deps).unwrap();
-        let parsed = formatter.parse(&content).unwrap();
-        assert_eq!(parsed.len(), deps.len());
-        assert_eq!(parsed[0].name, deps[0].name);
-    }
-
-    #[test]
-    fn json_roundtrip() {
-        let deps = vec![sample_dependency()];
-        let formatter = JsonFormatter;
-        let content = formatter.format(&deps).unwrap();
-        let parsed = formatter.parse(&content).unwrap();
-        assert_eq!(parsed[0].name, deps[0].name);
-    }
-
-    #[test]
-    fn yaml_roundtrip() {
-        let deps = vec![sample_dependency()];
-        let formatter = YamlFormatter;
-        let content = formatter.format(&deps).unwrap();
-        let parsed = formatter.parse(&content).unwrap();
-        assert_eq!(parsed[0].source_type, deps[0].source_type);
+    fn parse_reader(&self, reader: &mut dyn Read) -> Result<Vec<DependencyInfo>> {
+        Ok(serde_yaml::from_reader(reader)?)
     }
 }

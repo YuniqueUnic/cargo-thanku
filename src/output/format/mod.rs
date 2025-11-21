@@ -1,11 +1,11 @@
-use std::str::FromStr;
+use std::{io::Read, str::FromStr};
 
 use anyhow::Result;
 
 use crate::{errors::AppError, output::dependency::DependencyInfo};
 
 pub(crate) mod csv;
-pub(crate) mod markdown;
+pub mod markdown;
 pub(crate) mod structured;
 
 pub use csv::CsvFormatter;
@@ -67,6 +67,12 @@ impl FromStr for OutputFormat {
 pub trait Formatter {
     fn format(&self, deps: &[DependencyInfo]) -> Result<String>;
     fn parse(&self, content: &str) -> Result<Vec<DependencyInfo>>;
+
+    fn parse_reader(&self, reader: &mut dyn Read) -> Result<Vec<DependencyInfo>> {
+        let mut buffer = String::new();
+        reader.read_to_string(&mut buffer)?;
+        self.parse(&buffer)
+    }
 }
 
 impl dyn Formatter {
