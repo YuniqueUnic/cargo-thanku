@@ -1,5 +1,8 @@
 use anyhow::Result;
-use reqwest::Client;
+use reqwest::{
+    Client,
+    header::{self, HeaderValue},
+};
 use serde::Deserialize;
 use std::time::Duration;
 use tracing::instrument;
@@ -100,6 +103,9 @@ pub struct GitHubClient {
 
 impl GitHubClient {
     pub fn new(token: &str) -> Result<Self> {
+        const ACCEPT: &str = "application/vnd.github+json";
+        const API_VERSION: &str = "2022-11-28";
+
         let client = Client::builder()
             .timeout(Duration::from_secs(10))
             .user_agent(concat!(
@@ -108,10 +114,15 @@ impl GitHubClient {
                 env!("CARGO_PKG_VERSION")
             ))
             .default_headers({
-                let mut headers = reqwest::header::HeaderMap::new();
+                let mut headers = header::HeaderMap::new();
                 headers.insert(
-                    reqwest::header::AUTHORIZATION,
-                    reqwest::header::HeaderValue::from_str(&format!("token {}", token))?,
+                    header::AUTHORIZATION,
+                    HeaderValue::from_str(&format!("Bearer {}", token))?,
+                );
+                headers.insert(header::ACCEPT, HeaderValue::from_static(ACCEPT));
+                headers.insert(
+                    header::HeaderName::from_static("x-github-api-version"),
+                    HeaderValue::from_static(API_VERSION),
                 );
                 headers
             })
@@ -123,14 +134,19 @@ impl GitHubClient {
     #[instrument(skip(self))]
     pub async fn star_repository(&self, owner: &str, repo: &str) -> Result<()> {
         let url = format!("https://api.github.com/user/starred/{}/{}", owner, repo);
-        self.client.put(&url).send().await?;
+        self.client
+            .put(&url)
+            .header(header::CONTENT_LENGTH, 0)
+            .send()
+            .await?
+            .error_for_status()?;
         Ok(())
     }
 
     #[instrument(skip(self))]
     pub async fn get_repository_info(&self, owner: &str, repo: &str) -> Result<RepositoryInfo> {
         let url = format!("https://api.github.com/repos/{}/{}", owner, repo);
-        let response = self.client.get(&url).send().await?;
+        let response = self.client.get(&url).send().await?.error_for_status()?;
         Ok(response.json().await?)
     }
 }
